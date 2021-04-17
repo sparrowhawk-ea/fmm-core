@@ -1,7 +1,7 @@
 {
 	"author": "sparrowhawk-ea",
 	"bugs": {
-		"url": "https://github.com/sparrowhawk-ea/fmmp-core/issues"
+		"url": "https://github.com/sparrowhawk-ea/fmm-core/issues"
 	},
 	"description": "Form Minimap",
 	"devDependencies": {
@@ -18,20 +18,20 @@
 	"files": [
 		"dist/**/*"
 	],
-	"homepage": "https://github.com/sparrowhawk-ea/fmmp-core#readme",
+	"homepage": "https://github.com/sparrowhawk-ea/fmm-core#readme",
 	"keywords": [
 		"Form",
 		"Minimap"
 	],
 	"license": "MIT",
 	"main": "dist/index.js",
-	"name": "@fmmp/core",
+	"name": "@eafmm/core",
 	"peerDependencies": {
 		"tslib": "^2.1.0"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/sparrowhawk-ea/fmmp-core.git"
+		"url": "git+https://github.com/sparrowhawk-ea/fmm-core.git"
 	},
 	"scripts": {
 		"build": "tsc",
