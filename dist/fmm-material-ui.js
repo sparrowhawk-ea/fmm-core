@@ -1,12 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FmmMaterialUI = void 0;
-var tslib_1 = require("tslib");
-var fmm_utils_1 = require("./fmm-utils");
+import { __extends } from "tslib";
+import { FmmFrameworkItemBase } from './fmm-utils';
 // =================================================================================================================================
 //						F M M M A T E R I A L U I
 // =================================================================================================================================
-exports.FmmMaterialUI = {
+export var FmmMaterialUI = {
     createFrameworkItem: function (_, e) {
         if (e.tagName === 'INPUT') {
             var type = e.type;
@@ -25,7 +22,7 @@ exports.FmmMaterialUI = {
 //						F R A M E W O R K I T E M
 // =================================================================================================================================
 var FrameworkItem = /** @class */ (function (_super) {
-    tslib_1.__extends(FrameworkItem, _super);
+    __extends(FrameworkItem, _super);
     // =============================================================================================================================
     function FrameworkItem(wrapperClass) {
         return _super.call(this, wrapperClass || 'MuiFormControl-root') || this;
@@ -36,12 +33,12 @@ var FrameworkItem = /** @class */ (function (_super) {
         return (_a = envelope === null || envelope === void 0 ? void 0 : envelope.querySelector('.MuiFormHelperText-root')) === null || _a === void 0 ? void 0 : _a.textContent;
     };
     return FrameworkItem;
-}(fmm_utils_1.FmmFrameworkItemBase));
+}(FmmFrameworkItemBase));
 // =================================================================================================================================
 //						F R A M E W O R K I T E M C H E C K
 // =================================================================================================================================
 var FrameworkItemCheck = /** @class */ (function (_super) {
-    tslib_1.__extends(FrameworkItemCheck, _super);
+    __extends(FrameworkItemCheck, _super);
     // =============================================================================================================================
     function FrameworkItemCheck() {
         return _super.call(this, 'MuiFormControlLabel-root') || this;
@@ -56,7 +53,7 @@ var FrameworkItemCheck = /** @class */ (function (_super) {
 //						F R A M E W O R K I T E M S E L E C T
 // =================================================================================================================================
 var FrameworkItemSelect = /** @class */ (function (_super) {
-    tslib_1.__extends(FrameworkItemSelect, _super);
+    __extends(FrameworkItemSelect, _super);
     function FrameworkItemSelect() {
         return _super !== null && _super.apply(this, arguments) || this;
     }

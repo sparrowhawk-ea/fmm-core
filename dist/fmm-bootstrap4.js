@@ -1,12 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FmmBootstrap4 = void 0;
-var tslib_1 = require("tslib");
-var fmm_utils_1 = require("./fmm-utils");
+import { __extends } from "tslib";
+import { FmmFrameworkItemBase } from './fmm-utils';
 // =================================================================================================================================
 //						F M M B O O T S T R A P 4
 // =================================================================================================================================
-exports.FmmBootstrap4 = {
+export var FmmBootstrap4 = {
     createFrameworkItem: function (_, e) {
         return e.tagName === 'INPUT' && ['checkbox', 'radio'].includes(e.type) ? G.Check : G.Other;
     }
@@ -20,7 +17,7 @@ exports.FmmBootstrap4 = {
 //						F R A M E W O R K I T E M
 // =================================================================================================================================
 var FrameworkItem = /** @class */ (function (_super) {
-    tslib_1.__extends(FrameworkItem, _super);
+    __extends(FrameworkItem, _super);
     // =============================================================================================================================
     function FrameworkItem(wrapperClass) {
         return _super.call(this, wrapperClass) || this;
@@ -36,7 +33,7 @@ var FrameworkItem = /** @class */ (function (_super) {
         return undefined;
     };
     return FrameworkItem;
-}(fmm_utils_1.FmmFrameworkItemBase));
+}(FmmFrameworkItemBase));
 // =================================================================================================================================
 //						G
 // =================================================================================================================================

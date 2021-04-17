@@ -1,11 +1,8 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FmmVuetify = void 0;
-var tslib_1 = require("tslib");
+import { __extends } from "tslib";
 // =================================================================================================================================
 //						F M M V U E T I F Y
 // =================================================================================================================================
-exports.FmmVuetify = {
+export var FmmVuetify = {
     createFrameworkItem: function (_, e) {
         var _a;
         return ((_a = e.parentElement) === null || _a === void 0 ? void 0 : _a.classList.contains('v-select__selections')) ? new FrameworkItemSelect(e) : new FrameworkItem(e);
@@ -69,7 +66,7 @@ var FrameworkItem = /** @class */ (function () {
 //						F R A M E W O R K I T E M S E L E C T
 // =================================================================================================================================
 var FrameworkItemSelect = /** @class */ (function (_super) {
-    tslib_1.__extends(FrameworkItemSelect, _super);
+    __extends(FrameworkItemSelect, _super);
     function FrameworkItemSelect() {
         return _super !== null && _super.apply(this, arguments) || this;
     }

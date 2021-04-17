@@ -1,11 +1,8 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FmmNgMaterial = void 0;
-var tslib_1 = require("tslib");
+import { __extends } from "tslib";
 // =================================================================================================================================
 //						F M M N G M A T E R I A L
 // =================================================================================================================================
-exports.FmmNgMaterial = {
+export var FmmNgMaterial = {
     createFrameworkItem: function (_, e) {
         var eTag = e.tagName;
         if (eTag === 'INPUT' && e.classList.contains('mat-autocomplete-trigger'))
@@ -68,7 +65,7 @@ var FrameworkItem = /** @class */ (function () {
 //						F R A M E W O R K I T E M A U T O C O M P L E T E
 // =================================================================================================================================
 var FrameworkItemAutoComplete = /** @class */ (function (_super) {
-    tslib_1.__extends(FrameworkItemAutoComplete, _super);
+    __extends(FrameworkItemAutoComplete, _super);
     function FrameworkItemAutoComplete() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
@@ -82,7 +79,7 @@ var FrameworkItemAutoComplete = /** @class */ (function (_super) {
 //						F R A M E W O R K I T E M S E L E C T
 // =================================================================================================================================
 var FrameworkItemSelect = /** @class */ (function (_super) {
-    tslib_1.__extends(FrameworkItemSelect, _super);
+    __extends(FrameworkItemSelect, _super);
     function FrameworkItemSelect() {
         return _super !== null && _super.apply(this, arguments) || this;
     }

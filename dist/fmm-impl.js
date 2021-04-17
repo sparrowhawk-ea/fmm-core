@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Fmm = void 0;
-var tslib_1 = require("tslib");
+import { __assign, __extends, __spreadArray } from "tslib";
 // =================================================================================================================================
 //						F M M
 // =================================================================================================================================
@@ -52,7 +49,7 @@ var Fmm = /** @class */ (function () {
     });
     return Fmm;
 }());
-exports.Fmm = Fmm;
+export { Fmm };
 // =================================================================================================================================
 //						C L I P C O N T E X T
 // =================================================================================================================================
@@ -414,7 +411,7 @@ var Minimap = /** @class */ (function () {
         this.pendingCompose = false;
         this.pendingLayout = false;
         this.pendingSnapshot = false;
-        this.data = tslib_1.__assign(tslib_1.__assign({}, Snapshot.NULLDATA), { label: p.title });
+        this.data = __assign(__assign({}, Snapshot.NULLDATA), { label: p.title });
         this.minimapId = Minimap.idCounter++;
         this.verbosity = p.verbosity;
         var showingSnapshot;
@@ -663,7 +660,7 @@ var Minimap = /** @class */ (function () {
                 snapshots.filter(function (s) { return s.error && s.status === data.status; })
                     .forEach(function (s) { return summary_1[s.aggregateLabel || s.label] = s.error; });
             var summaryKeys = Object.keys(summary_1).sort();
-            (_a = this.summary).splice.apply(_a, tslib_1.__spreadArray([0, this.summary.length], summaryKeys.map(function (key) { return key + ': ' + summary_1[key]; })));
+            (_a = this.summary).splice.apply(_a, __spreadArray([0, this.summary.length], summaryKeys.map(function (key) { return key + ': ' + summary_1[key]; })));
             var minimapSnapshot = { snapshots: snapshots, status: data.status, title: data.label, values: this.values };
             this.detail.refreshDisplay(this.minimapId);
             this.dragData = JSON.stringify(minimapSnapshot);
@@ -975,7 +972,7 @@ var Snapshot = /** @class */ (function () {
     // =============================================================================================================================
     function Snapshot(aggregateLabel, name, ef, panel, upcall) {
         var _this = this;
-        this.data = tslib_1.__assign(tslib_1.__assign({}, Snapshot.NULLDATA), { aggregateLabel: aggregateLabel, name: name });
+        this.data = __assign(__assign({}, Snapshot.NULLDATA), { aggregateLabel: aggregateLabel, name: name });
         this.div = ef.createElement('DIV');
         this.div.style.position = 'absolute';
         this.div.onmouseover = function (ev) {
@@ -1203,7 +1200,7 @@ var StoreItem = /** @class */ (function () {
 //						S T O R E I T E M I N P U T
 // =================================================================================================================================
 var StoreItemInput = /** @class */ (function (_super) {
-    tslib_1.__extends(StoreItemInput, _super);
+    __extends(StoreItemInput, _super);
     // =============================================================================================================================
     function StoreItemInput(e, listener) {
         return _super.call(this, e, 'input', listener) || this;
@@ -1214,7 +1211,7 @@ var StoreItemInput = /** @class */ (function (_super) {
 //						S T O R E I T E M S E L E C T
 // =================================================================================================================================
 var StoreItemSelect = /** @class */ (function (_super) {
-    tslib_1.__extends(StoreItemSelect, _super);
+    __extends(StoreItemSelect, _super);
     // =============================================================================================================================
     function StoreItemSelect(e, listener) {
         var _this = _super.call(this, e, 'change', listener) || this;
@@ -1242,7 +1239,7 @@ var StoreItemSelect = /** @class */ (function (_super) {
 //						S T O R E I T E M T E X T A R E A
 // =================================================================================================================================
 var StoreItemTextArea = /** @class */ (function (_super) {
-    tslib_1.__extends(StoreItemTextArea, _super);
+    __extends(StoreItemTextArea, _super);
     // =============================================================================================================================
     function StoreItemTextArea(e, listener) {
         var _this = _super.call(this, e, 'input', listener) || this;
