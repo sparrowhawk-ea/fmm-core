@@ -399,12 +399,12 @@ class FormStoreItem {
 	// =============================================================================================================================
 	public takeSnapshot(values: FmmMapStrings): FmmSnapshot {
 		const data = this.snapshot.data;
+		const name = data.name;
 		if (data.label === undefined || this.dynamicLabel) {
 			const label = this.label?.getAttribute('aria-label') || this.label?.textContent || this.e.getAttribute('aria-label');
-			data.label = Fmm.trim(label);
+			data.label = Fmm.trim(label || this.e.id || name);
 			data.placeholder = Fmm.trim(this.e.getAttribute('placeholder'));
 		}
-		const name = data.name;
 		let displayValue = Fmm.trim(this.framework.getValue(name, this.e, this.envelope, data.label));
 		if (!displayValue) {
 			const rawValue = this.store.getValue();
@@ -765,7 +765,8 @@ class Minimap implements FmmStore {
 			this.status.className = data.status = this.snapshotsPanel.computeStatus();
 			const summary: Record<string, string> = {};
 			if (data.status !== Fmm.STATUS.Disabled)
-				snapshots.forEach(s => s.status !== data.status || (summary[s.aggregateLabel || s.label] = s.error));
+				snapshots.filter(s => s.error && s.status === data.status)
+					.forEach(s => summary[s.aggregateLabel || s.label] = s.error);
 			const summaryKeys = Object.keys(summary).sort();
 			this.summary.splice(0, this.summary.length, ...summaryKeys.map(key => key + ': ' + summary[key]));
 			const minimapSnapshot: FmmMinimapSnapshot = { snapshots, status: data.status, title: data.label, values: this.values };
@@ -828,7 +829,7 @@ class Panel implements FmmPanel {
 		this.popupParent = parent.appendChild(this.ef.createElement('DIV'));
 		const popupParentStyle = this.popupParent.style;
 		popupParentStyle.position = 'relative'; // so popup child can use position:absolute
-		if (!detailParent) this.detailPopup = new Popup(ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
+		if (!detailParent) this.detailPopup = new Popup(this.ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
 		this.div = parent.appendChild(this.ef.createElement('DIV'));
 		const divStyle = this.div.style;
 		divStyle.height = divStyle.width = '100%';

@@ -255,12 +255,12 @@ var FormStoreItem = /** @class */ (function () {
     FormStoreItem.prototype.takeSnapshot = function (values) {
         var _a, _b;
         var data = this.snapshot.data;
+        var name = data.name;
         if (data.label === undefined || this.dynamicLabel) {
             var label = ((_a = this.label) === null || _a === void 0 ? void 0 : _a.getAttribute('aria-label')) || ((_b = this.label) === null || _b === void 0 ? void 0 : _b.textContent) || this.e.getAttribute('aria-label');
-            data.label = Fmm.trim(label);
+            data.label = Fmm.trim(label || this.e.id || name);
             data.placeholder = Fmm.trim(this.e.getAttribute('placeholder'));
         }
-        var name = data.name;
         var displayValue = Fmm.trim(this.framework.getValue(name, this.e, this.envelope, data.label));
         if (!displayValue) {
             var rawValue = this.store.getValue();
@@ -660,7 +660,8 @@ var Minimap = /** @class */ (function () {
             this.status.className = data.status = this.snapshotsPanel.computeStatus();
             var summary_1 = {};
             if (data.status !== Fmm.STATUS.Disabled)
-                snapshots.forEach(function (s) { return s.status !== data.status || (summary_1[s.aggregateLabel || s.label] = s.error); });
+                snapshots.filter(function (s) { return s.error && s.status === data.status; })
+                    .forEach(function (s) { return summary_1[s.aggregateLabel || s.label] = s.error; });
             var summaryKeys = Object.keys(summary_1).sort();
             (_a = this.summary).splice.apply(_a, tslib_1.__spreadArray([0, this.summary.length], summaryKeys.map(function (key) { return key + ': ' + summary_1[key]; })));
             var minimapSnapshot = { snapshots: snapshots, status: data.status, title: data.label, values: this.values };
@@ -714,7 +715,7 @@ var Panel = /** @class */ (function () {
         var popupParentStyle = this.popupParent.style;
         popupParentStyle.position = 'relative'; // so popup child can use position:absolute
         if (!detailParent)
-            this.detailPopup = new Popup(ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
+            this.detailPopup = new Popup(this.ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
         this.div = parent.appendChild(this.ef.createElement('DIV'));
         var divStyle = this.div.style;
         divStyle.height = divStyle.width = '100%';
