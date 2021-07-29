@@ -6,7 +6,23 @@ var Fmm = /** @class */ (function () {
     function Fmm() {
     }
     // =============================================================================================================================
-    Fmm.createPanel = function (ef, parent, detailParent, vertical) {
+    Fmm.createMinimap = function (p, parent, ef) {
+        var err = 'FmmMinimap not created: invalid ';
+        if (parent) {
+            if (!(parent instanceof HTMLElement))
+                throw new Error(err + 'parent');
+            var panel = new Panel(ef, parent, undefined, true);
+            return panel.createMinimap(__assign(__assign({}, p), { anchor: undefined, usePanelDetail: true }));
+        }
+        else {
+            if (!(p.anchor instanceof HTMLElement))
+                throw new Error(err + 'anchor');
+            var panel = new Panel(ef, undefined, undefined, false);
+            return panel.createMinimap(__assign(__assign({}, p), { usePanelDetail: false }));
+        }
+    };
+    // =============================================================================================================================
+    Fmm.createPanel = function (parent, detailParent, vertical, ef) {
         var err = 'FmmPanel not created: invalid ';
         if (!(parent instanceof HTMLElement))
             throw new Error(err + 'parent');
@@ -707,18 +723,20 @@ var Panel = /** @class */ (function () {
         this.vertical = vertical;
         this.minimaps = [];
         this.ef = ef || Panel.EF;
-        this.detail = new Detail(this.ef, detailParent);
-        this.popupParent = parent.appendChild(this.ef.createElement('DIV'));
-        var popupParentStyle = this.popupParent.style;
-        popupParentStyle.position = 'relative'; // so popup child can use position:absolute
-        if (!detailParent)
-            this.detailPopup = new Popup(this.ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
-        this.div = parent.appendChild(this.ef.createElement('DIV'));
-        var divStyle = this.div.style;
-        divStyle.height = divStyle.width = '100%';
-        divStyle.overflowX = vertical ? 'hidden' : 'scroll';
-        divStyle.overflowY = vertical ? 'scroll' : 'hidden';
-        divStyle.whiteSpace = vertical ? 'none' : 'nowrap';
+        if (parent) {
+            this.detail = new Detail(this.ef, detailParent);
+            this.popupParent = parent.appendChild(this.ef.createElement('DIV'));
+            var popupParentStyle = this.popupParent.style;
+            popupParentStyle.position = 'relative'; // so popup child can use position:absolute
+            if (!detailParent)
+                this.detailPopup = new Popup(this.ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
+            this.div = parent.appendChild(this.ef.createElement('DIV'));
+            var divStyle = this.div.style;
+            divStyle.height = divStyle.width = '100%';
+            divStyle.overflowX = vertical ? 'hidden' : 'scroll';
+            divStyle.overflowY = vertical ? 'scroll' : 'hidden';
+            divStyle.whiteSpace = vertical ? 'none' : 'nowrap';
+        }
     }
     // =============================================================================================================================
     Panel.prototype.destructor = function () {
@@ -730,7 +748,7 @@ var Panel = /** @class */ (function () {
     };
     // =============================================================================================================================
     Panel.prototype.add = function (minimap, frame) {
-        if (frame) {
+        if (frame && this.div) {
             this.div.appendChild(frame);
             frame.style.height = frame.style.width = '100%';
             frame.style.display = this.vertical ? 'block' : 'inline-block';

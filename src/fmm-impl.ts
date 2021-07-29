@@ -131,11 +131,29 @@ export class Fmm {
 	});
 
 	// =============================================================================================================================
+	public static createMinimap(
+		p: Readonly<FmmMinimapCreateParam>,
+		parent?: HTMLElement,
+		ef?: FmmElementFactory
+	): FmmMinimap {
+		const err = 'FmmMinimap not created: invalid ';
+		if (parent) {
+			if (!(parent instanceof HTMLElement)) throw new Error(err + 'parent');
+			const panel = new Panel(ef, parent, undefined, true);
+			return panel.createMinimap({ ...p, anchor: undefined, usePanelDetail: true });
+		} else {
+			if (!(p.anchor instanceof HTMLElement)) throw new Error(err + 'anchor');
+			const panel = new Panel(ef, undefined, undefined, false);
+			return panel.createMinimap({ ...p, usePanelDetail: false });
+		}
+	}
+
+	// =============================================================================================================================
 	public static createPanel(
-		ef: FmmElementFactory,
 		parent: HTMLElement,
 		detailParent?: HTMLElement,
-		vertical?: boolean
+		vertical?: boolean,
+		ef?: FmmElementFactory
 	): FmmPanel {
 		const err = 'FmmPanel not created: invalid ';
 		if (!(parent instanceof HTMLElement)) throw new Error(err + 'parent');
@@ -825,17 +843,19 @@ class Panel implements FmmPanel {
 		private readonly vertical: boolean
 	) {
 		this.ef = ef || Panel.EF;
-		this.detail = new Detail(this.ef, detailParent);
-		this.popupParent = parent.appendChild(this.ef.createElement('DIV'));
-		const popupParentStyle = this.popupParent.style;
-		popupParentStyle.position = 'relative'; // so popup child can use position:absolute
-		if (!detailParent) this.detailPopup = new Popup(this.ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
-		this.div = parent.appendChild(this.ef.createElement('DIV'));
-		const divStyle = this.div.style;
-		divStyle.height = divStyle.width = '100%';
-		divStyle.overflowX = vertical ? 'hidden' : 'scroll';
-		divStyle.overflowY = vertical ? 'scroll' : 'hidden';
-		divStyle.whiteSpace = vertical ? 'none' : 'nowrap';
+		if (parent) {
+			this.detail = new Detail(this.ef, detailParent);
+			this.popupParent = parent.appendChild(this.ef.createElement('DIV'));
+			const popupParentStyle = this.popupParent.style;
+			popupParentStyle.position = 'relative'; // so popup child can use position:absolute
+			if (!detailParent) this.detailPopup = new Popup(this.ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
+			this.div = parent.appendChild(this.ef.createElement('DIV'));
+			const divStyle = this.div.style;
+			divStyle.height = divStyle.width = '100%';
+			divStyle.overflowX = vertical ? 'hidden' : 'scroll';
+			divStyle.overflowY = vertical ? 'scroll' : 'hidden';
+			divStyle.whiteSpace = vertical ? 'none' : 'nowrap';	
+		}
 	}
 
 	// =============================================================================================================================
@@ -847,7 +867,7 @@ class Panel implements FmmPanel {
 
 	// =============================================================================================================================
 	public add(minimap: Minimap, frame: HTMLElement) {
-		if (frame) {
+		if (frame && this.div) {
 			this.div.appendChild(frame);
 			frame.style.height = frame.style.width = '100%';
 			frame.style.display = this.vertical ? 'block' : 'inline-block';

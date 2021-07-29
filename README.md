@@ -37,27 +37,54 @@ npm install --save @eafmm/core
 ```
 
 ## Usage
-1. Create a [panel](#fmmpanel).  Most pages will contain only one panel.
-1. Create a [minimap](#fmmminimap) using the panel.  Most pages (except SPA wizards) will contain only one minimap per panel.
-1. Detach or destroy the minimap when its corresponding form is destroyed.
-1. In SPA wizards, you may create a minimap for each step of the wizard.
-1. Destroy the panel when no more minimaps are needed.  Any detached minimaps in this panel will be destroyed.
+1. Create a [minimap](#fmmminimap) specifying either a parent DIV for an always-visible minimap, or an anchor DIV for a popup minimap.
+1. Destroy the minimap when its corresponding form is destroyed.
 
 ## Example
 ```ts
-import { Fmm, FmmMinimap, FmmPanel } from '@eafmm/core';
+import { Fmm, FmmMinimap } from '@eafmm/core';
 
-const panel = Fmm.createPanel(undefined, parentDiv, detailParentDiv);
 const p: FmmMinimapCreateParam = {
    form: myForm,
-   title: 'Important Info',
-   usePanelDetail: true
+   title: 'Important Info'
 };
-const minimap = panel.createMinimap(p);
+const minimap = Fmm.createMinimap(p, parentDiv);
 
 ...
 
-minimap.detach();
+minimap.destructor();
+```
+
+## Usage Of Wizard Panel With Multiple Minimaps
+1. Create a [panel](#fmmpanel) for the wizard.
+1. Create a [minimap](#fmmminimap) using the panel for the form in each step of the wizard.
+1. Detach the minimap when a step is navigated away and its corresponding form is destroyed.  The minimap will be shown greyed out so it can still be used for context and cut-and-paste.
+1. Destroy the panel when the wizard is no longer needed.  All detached minimaps in this panel will be destroyed.
+
+## Example Wizard
+```ts
+import { Fmm, FmmMinimap, FmmPanel } from '@eafmm/core';
+
+const panel = Fmm.createPanel(parentDiv, detailParentDiv);
+const p1: FmmMinimapCreateParam = {
+   form: myForm1,
+   title: 'Step 1',
+   usePanelDetail: true
+};
+const minimap1 = panel.createMinimap(p1);
+
+...
+
+minimap1.detach();
+const p2: FmmMinimapCreateParam = {
+   form: myForm2,
+   title: 'Step 2',
+   usePanelDetail: true
+};
+const minimap2 = panel.createMinimap(p2);
+
+...
+
 panel.destructor();
 ```
 
@@ -67,11 +94,16 @@ panel.destructor();
 
 Static Method | Parameter/Returns | Description
 --- | --- | ---
-createPanel | ( | Create a panel.
-&nbsp; | ef: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
+createMinimap | ( | Create a minimap.
+&nbsp; | p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
+&nbsp; | <a name='pcm-parent'></a>parent?: HTMLElement | Parent for the minimap.  If undefined, an anchor must be specified in the [FmmMinimapCreateParam](#fmmminimapcreateparam) parameter.
+&nbsp; | ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
+&nbsp; | ): [FmmMinimap](#fmmminimap)
+createPanel | ( | Create a panel to hold multiple minimaps.
 &nbsp; | parent: HTMLElement | Parent for the panel.
 &nbsp; | <a name='pcp-detailparent'></a>detailParent?: HTMLElement | Parent for the detail area.  If undefined, details will be shown in a popup.
 &nbsp; | <a name='pcp-vertical'></a>vertical?: boolean | Stack minimaps vertically in the panel.
+&nbsp; | ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
 &nbsp; | ): [FmmPanel](#fmmpanel)
 
 ## FmmElementFactory

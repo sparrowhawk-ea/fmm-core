@@ -1,4 +1,4 @@
-import { FmmElementFactory, FmmPanel } from './fmm';
+import { FmmElementFactory, FmmMinimap, FmmMinimapCreateParam, FmmPanel } from './fmm';
 export declare class Fmm {
     static readonly CLASS: Readonly<{
         Detached: string;
@@ -26,6 +26,7 @@ export declare class Fmm {
         Required: string;
         Valid: string;
     }>;
-    static createPanel(ef: FmmElementFactory, parent: HTMLElement, detailParent?: HTMLElement, vertical?: boolean): FmmPanel;
+    static createMinimap(p: Readonly<FmmMinimapCreateParam>, parent?: HTMLElement, ef?: FmmElementFactory): FmmMinimap;
+    static createPanel(parent: HTMLElement, detailParent?: HTMLElement, vertical?: boolean, ef?: FmmElementFactory): FmmPanel;
     static trim(s: string): string;
 }
