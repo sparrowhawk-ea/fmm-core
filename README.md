@@ -14,9 +14,9 @@ The minimap can be set permanently visible in a panel DIV or popped up on mouse 
 The details for each form element can be shown in a permanently visible shared DIV or in a popup per minimap.
 
 When a form is destroyed, its corresponding minimap should be detached or destroyed.
-The [Angular](https://github.com/sparrowhawk-ea/fmm-ng), [React](https://github.com/sparrowhawk-ea/fmm-react), and [Vue](https://github.com/sparrowhawk-ea/fmm-vue) components supplied with this library will detach the minimap when the component is destroyed.  This will happen when the component tag is placed inside the form.
+The [Angular](https://www.npmjs.com/package/@eafmm/ng), [React](https://www.npmjs.com/package/@eafmm/react), and [Vue](https://www.npmjs.com/package/@eafmm/vue) components supplied with this library will detach the minimap when the component is destroyed.  This will happen when the component tag is placed inside the form.
 
-Please feel free to play around with the [Angular](https://github.com/sparrowhawk-ea/fmm-ng-demo), [React](https://github.com/sparrowhawk-ea/fmm-react-demo), and [Vue](https://github.com/sparrowhawk-ea/fmm-vue-demo) demos.  Feedback is always welcome.
+Please feel free to play around with the [Angular](https://www.npmjs.com/package/@eafmm/ng-demo), [React](https://www.npmjs.com/package/@eafmm/react-demo), and [Vue](https://www.npmjs.com/package/@eafmm/vue-demo) demos.  Feedback is always welcome.
 
 Limitations:
 - Only form elements with an ID or NAME attribute, which are not HIDDEN, are monitored.
