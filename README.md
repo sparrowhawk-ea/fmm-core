@@ -129,7 +129,7 @@ Property | Type | Default | Description
 --- | --- | --- | ---
 <a name='mcp-aggregatelabels'></a>aggregateLabels | [FmmMapString](#fmmmapstring) | |
 <a name='mcp-anchor'></a>anchor | HTMLElement | | The element whose mouse enter event will show the minimap as a popup.  If undefined, the minimap will be shown in the panel.
-<a name='mcp-deboucemsec'></a>debounceMsec | number | 200 | Delay for responding to form changes.
+<a name='mcp-debouncemsec'></a>debounceMsec | number | 200 | Delay for responding to form changes.
 <a name='mcp-dynamiclabels'></a>dynamicLabels | string[] | | List of form elements, by ID or NAME, whose label may change after creation.
 <a name='mcp-form'></a>form | HTMLFormElement | **Required** | The form.
 <a name='mcp-framework'></a>framework | [FmmFramework](#fmmframework) | | 
@@ -141,6 +141,7 @@ Property | Type | Default | Description
 <a name='mcp-usewidthtoscale'></a>useWidthToScale | boolean | false | Use width rather than height to size the minimap, maintaining aspect ratio of the form (or **page** if specified).
 <a name='mcp-verbosity'></a>verbosity | number | 0 | Set to 1 to see processing times in console.
 <a name='mcp-widgetfactories'></a>widgetFactories | [FmmWidgetFactory](#fmmwidgetfactory)[] | | 
+<a name='mcp-zoommaxpercent'></a>zoomMaxPercent | number | 100 | Maximum percent zoom of anchored minimap (capped at 500).
 
 ## FmmOnUpdate
 

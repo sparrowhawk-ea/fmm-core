@@ -1,4 +1,4 @@
-import { FmmFrameworkItem, FmmMapErrors, FmmMapValues, FmmMinimap, FmmStore, FmmStoreItem } from './fmm';
+import { FmmFrameworkItem, FmmStoreErrors, FmmStoreValues, FmmMinimap, FmmStore, FmmStoreItem } from './fmm';
 
 // =================================================================================================================================
 //						F M M F R A M E W O R K I T E M B A S E
@@ -42,9 +42,9 @@ export class FmmFrameworkItemBase implements FmmFrameworkItem {
 }
 
 // =================================================================================================================================
-//						F M M M A P S T O R E
+//						F M M S T O R E I M P L
 // =================================================================================================================================
-export class FmmMapStore<TV extends FmmMapValues, TE extends FmmMapErrors> implements FmmStore {
+export class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> implements FmmStore {
 	private readonly minimaps: Set<FmmMinimap> = new Set();
 
 	// =============================================================================================================================
@@ -103,9 +103,9 @@ export class FmmMapStore<TV extends FmmMapValues, TE extends FmmMapErrors> imple
 // =================================================================================================================================
 //						S T O R E I T E M
 // =================================================================================================================================
-class StoreItem<TV extends FmmMapValues, TE extends FmmMapErrors> implements FmmStoreItem {
+class StoreItem<TV extends FmmStoreValues, TE extends FmmStoreErrors> implements FmmStoreItem {
 	// =============================================================================================================================
-	public constructor(private readonly e: HTMLElement, protected f: FmmMapStore<TV, TE>, protected readonly key: string) {}
+	public constructor(private readonly e: HTMLElement, protected f: FmmStoreImpl<TV, TE>, protected readonly key: string) {}
 
 	// =============================================================================================================================
 	public destructor() {

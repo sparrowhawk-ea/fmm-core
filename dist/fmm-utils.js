@@ -42,11 +42,11 @@ var FmmFrameworkItemBase = /** @class */ (function () {
 }());
 export { FmmFrameworkItemBase };
 // =================================================================================================================================
-//						F M M M A P S T O R E
+//						F M M S T O R E I M P L
 // =================================================================================================================================
-var FmmMapStore = /** @class */ (function () {
+var FmmStoreImpl = /** @class */ (function () {
     // =============================================================================================================================
-    function FmmMapStore(values, errors) {
+    function FmmStoreImpl(values, errors) {
         this.values = values;
         this.errors = errors;
         this.minimaps = new Set();
@@ -54,11 +54,11 @@ var FmmMapStore = /** @class */ (function () {
         this.values = values || {};
     }
     // =============================================================================================================================
-    FmmMapStore.prototype.destructor = function () {
+    FmmStoreImpl.prototype.destructor = function () {
         /**/
     };
     // =============================================================================================================================
-    FmmMapStore.prototype.createStoreItem = function (e, _) {
+    FmmStoreImpl.prototype.createStoreItem = function (e, _) {
         var name = e.getAttribute('name');
         if (name in this.values)
             return new StoreItem(e, this, name);
@@ -67,25 +67,25 @@ var FmmMapStore = /** @class */ (function () {
         return undefined; // ignore everything else
     };
     // =============================================================================================================================
-    FmmMapStore.prototype.getError = function (key) {
+    FmmStoreImpl.prototype.getError = function (key) {
         var error = this.errors[key];
         if (Array.isArray(error))
             return error.length ? String(error[0]) : undefined;
         return error ? String(error) : undefined;
     };
     // =============================================================================================================================
-    FmmMapStore.prototype.getValue = function (key) {
+    FmmStoreImpl.prototype.getValue = function (key) {
         return this.values[key];
     };
     // =============================================================================================================================
-    FmmMapStore.prototype.notifyMinimap = function (minimap, on) {
+    FmmStoreImpl.prototype.notifyMinimap = function (minimap, on) {
         if (on)
             this.minimaps.add(minimap);
         else
             this.minimaps.delete(minimap);
     };
     // =============================================================================================================================
-    FmmMapStore.prototype.update = function (values, errors) {
+    FmmStoreImpl.prototype.update = function (values, errors) {
         var _this = this;
         this.errors = errors || {};
         this.values = values || {};
@@ -93,9 +93,9 @@ var FmmMapStore = /** @class */ (function () {
         this.minimaps.forEach(function (m) { return m.takeSnapshot() || stale.add(m); });
         stale.forEach(function (m) { return _this.minimaps.delete(m); });
     };
-    return FmmMapStore;
+    return FmmStoreImpl;
 }());
-export { FmmMapStore };
+export { FmmStoreImpl };
 // =================================================================================================================================
 // =================================================================================================================================
 // =================================================	P R I V A T E	============================================================

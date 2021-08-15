@@ -1,4 +1,4 @@
-import { FmmFrameworkItem, FmmMapErrors, FmmMapValues, FmmMinimap, FmmStore, FmmStoreItem } from './fmm';
+import { FmmFrameworkItem, FmmStoreErrors, FmmStoreValues, FmmMinimap, FmmStore, FmmStoreItem } from './fmm';
 export declare class FmmFrameworkItemBase implements FmmFrameworkItem {
     protected readonly wrapperClass: string;
     constructor(wrapperClass: string);
@@ -8,7 +8,7 @@ export declare class FmmFrameworkItemBase implements FmmFrameworkItem {
     getLabel(_: string, envelope: HTMLElement): HTMLElement;
     getValue(_: string, _e: HTMLElement, _n: HTMLElement, _l: string): string;
 }
-export declare class FmmMapStore<TV extends FmmMapValues, TE extends FmmMapErrors> implements FmmStore {
+export declare class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> implements FmmStore {
     private values;
     private errors?;
     private readonly minimaps;

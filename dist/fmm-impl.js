@@ -1,4 +1,4 @@
-import { __assign, __extends, __spreadArray } from "tslib";
+import { __assign, __extends } from "tslib";
 // =================================================================================================================================
 //						F M M
 // =================================================================================================================================
@@ -56,7 +56,7 @@ var Fmm = /** @class */ (function () {
     // =============================================================================================================================
     Fmm.CSS = "\n\tcircle.fmm-pushpin {\n\t\tfill: blue;\n\t}\n\tdiv.fmm-detail,\n\tdiv.fmm-popup {\n\t\tbackground-color: darkgray;\n\t\tborder: 1px solid black;\n\t\tbox-shadow: 5px 5px lightgray;\n\t\tpadding-top: 10px;\n\t\tz-index: 1;\n\t}\n\tdiv.fmm-disabled {\n\t\tbackground-color: darkgray;\n\t}\n\tdiv.fmm-disabled,\n\tdiv.fmm-invalid,\n\tdiv.fmm-optional,\n\tdiv.fmm-required,\n\tdiv.fmm-valid {\n\t\tborder: 1px solid transparent;\n\t}\n\tdiv.fmm-frame {\n\t\tbackground-color: white;\n\t}\n\tdiv.fmm-header {\n\t\tborder-bottom: 5px groove;\n\t\tmargin: 0;\n\t}\n\tdiv.fmm-invalid {\n\t\tbackground-color: red;\n\t}\n\tdiv.fmm-optional {\n\t\tborder-color: black;\n\t}\n\tdiv.fmm-required {\n\t\tborder-color: red;\n\t}\n\tdiv.fmm-valid {\n\t\tbackground-color: green;\n\t}\n\tfieldset.fmm-fieldset {\n\t\tbackground-color: white;\n\t\tborder-top: 5px groove;\n\t\tmin-width: 0;\n\t\tpadding: 5px 10px;\n\t}\n\tfieldset.fmm-fieldset div.fmm-disabled,\n\tfieldset.fmm-fieldset div.fmm-invalid,\n\tfieldset.fmm-fieldset div.fmm-optional,\n\tfieldset.fmm-fieldset div.fmm-required,\n\tfieldset.fmm-fieldset div.fmm-valid {\n\t\tborder-width: 2px;\n\t}\n\tlabel.fmm-title {\n\t\tfont-size: smaller;\n\t\tpadding: 2px;\n\t}\n\tlegend.fmm-legend {\n\t\tbackground-color: white;\n\t\tmargin: 5px;\n\t\tmax-width: 100%;\n\t\tpadding-right: 5px;\n\t}\n\ttextarea.fmm-value {\n\t\theight: 3em;\n\t\twidth: 100%;\n\t}\n\tdiv.fmm-detached.fmm-popup,\n\tdiv.fmm-detached div.fmm-detail {\n\t\tbackground-color: lightgray;\n\t}\n\tdiv.fmm-detached.fmm-frame,\n\tdiv.fmm-detached div.fmm-frame,\n\tdiv.fmm-detached fieldset.fmm-fieldset,\n\tiv.fmm-detached legend.fmm-legend {\n\t\tbackground-color: lightgray !important;\n\t}\n\t";
     // =============================================================================================================================
-    Fmm.STATUS = Object.freeze({
+    Fmm.STATUS_CLASS = Object.freeze({
         Disabled: 'fmm-disabled',
         Invalid: 'fmm-invalid',
         Optional: 'fmm-optional',
@@ -152,7 +152,6 @@ var Detail = /** @class */ (function () {
     // =============================================================================================================================
     function Detail(ef, parent) {
         this.data = Snapshot.NULLDATA;
-        this.values = [];
         var fieldset = (this.e = ef.createElement('FIELDSET'));
         fieldset.className = Fmm.CLASS.Fieldset;
         var legend = G.ELLIPSIS(ef.createElement('LEGEND'));
@@ -186,23 +185,22 @@ var Detail = /** @class */ (function () {
         this.error.textContent = this.label.textContent = G.NBSP;
         this.status.className = this.value.placeholder = this.value.value = '';
         this.data = Snapshot.NULLDATA;
-        this.values = [];
     };
     // =============================================================================================================================
     Detail.prototype.refreshDisplay = function (minimapId) {
-        var _a, _b;
+        var _a;
         if (minimapId !== this.minimapId)
             return;
-        var labelPrefix = ((_a = this.data.aggregateLabel) === null || _a === void 0 ? void 0 : _a.concat(': ')) || '';
-        this.error.textContent = this.error.title = this.data.error || G.NBSP;
-        this.label.textContent = this.label.title = labelPrefix + this.data.label || G.NBSP;
-        this.status.className = this.data.status;
-        this.value.placeholder = this.data.placeholder || '';
-        this.value.value = (_b = this.values) === null || _b === void 0 ? void 0 : _b.join('\n');
+        var data = this.data;
+        var labelPrefix = ((_a = data.aggregateLabel) === null || _a === void 0 ? void 0 : _a.concat(': ')) || '';
+        this.error.textContent = this.error.title = data.error || G.NBSP;
+        this.label.textContent = this.label.title = labelPrefix + data.label || G.NBSP;
+        this.status.className = Fmm.STATUS_CLASS[data.status];
+        this.value.placeholder = data.placeholder || '';
+        this.value.value = data.aggregateValues ? data.aggregateValues.join('\n') : data.value || '';
     };
     // =============================================================================================================================
-    Detail.prototype.setDisplay = function (minimapId, newData, values) {
-        this.values = values || [];
+    Detail.prototype.setDisplay = function (minimapId, newData) {
         this.data = newData || Snapshot.NULLDATA;
         this.refreshDisplay((this.minimapId = minimapId));
     };
@@ -224,15 +222,13 @@ var FormStoreItem = /** @class */ (function () {
         if (!label && ((_b = e.previousElementSibling) === null || _b === void 0 ? void 0 : _b.tagName) === 'LABEL')
             label = e.previousElementSibling;
         var name = store.getName() || FormStoreItem.NAMEPREFIX + String(p.nameCounter++);
-        if (!(name in p.values))
-            p.values[name] = [];
         var widget;
         this.widget = ((_c = p.widgetFactories) === null || _c === void 0 ? void 0 : _c.find(function (f) { return (widget = f.createWidget(name, e)); })) ? widget : FormStoreItem.DEFAULTWIDGET;
         this.dynamicLabel = p.dynamicLabels.includes(name);
         this.framework = ((_d = p.framework) === null || _d === void 0 ? void 0 : _d.createFrameworkItem(name, e)) || FormStoreItem.DEFAULTFRAMEWORK;
         this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label);
         this.label = label || this.framework.getLabel(name, this.envelope);
-        this.snapshot = new Snapshot(p.aggregateLabels[name], name, p.ef, p.snapshotsPanel, p.snapshotUpcall);
+        this.snapshot = new Snapshot(name, p);
         this.destructor = function () {
             _this.framework.destructor();
             store.destructor();
@@ -265,7 +261,7 @@ var FormStoreItem = /** @class */ (function () {
         return true;
     };
     // =============================================================================================================================
-    FormStoreItem.prototype.takeSnapshot = function (values) {
+    FormStoreItem.prototype.takeSnapshot = function () {
         var _a, _b;
         var data = this.snapshot.data;
         var name = data.name;
@@ -280,22 +276,20 @@ var FormStoreItem = /** @class */ (function () {
             if (rawValue)
                 displayValue = Fmm.trim(this.widget.getDisplayValue(name, this.e, data.label, rawValue));
         }
+        data.value = displayValue;
         var hasValue = !!displayValue;
-        if (hasValue)
-            values[name].push(displayValue);
+        if (hasValue && data.aggregateValues)
+            data.aggregateValues.push(displayValue);
         data.error = Fmm.trim(this.framework.getError(name, this.e, this.envelope, hasValue) || this.store.getError(hasValue));
-        var status;
         if (this.store.isDisabled()) {
-            status = Fmm.STATUS.Disabled;
+            this.snapshot.setStatus('Disabled');
         }
         else if (hasValue) {
-            status = data.error ? Fmm.STATUS.Invalid : Fmm.STATUS.Valid;
+            this.snapshot.setStatus(data.error ? 'Invalid' : 'Valid');
         }
         else {
-            status = data.error ? Fmm.STATUS.Required : Fmm.STATUS.Optional;
+            this.snapshot.setStatus(data.error ? 'Required' : 'Optional');
         }
-        if (status !== data.status)
-            this.snapshot.setStatus((data.status = status));
         return data;
     };
     // =============================================================================================================================
@@ -380,12 +374,8 @@ var FormStoreItems = /** @class */ (function () {
         this.list.forEach(function (fw) { return fw.layoutSnapshot(p, pageRect, scale); });
     };
     // =============================================================================================================================
-    FormStoreItems.prototype.takeSnapshot = function (values) {
-        // we need to preserve the values string[] reference, since it may be cached in Detail with the currently displayed Snapshot
-        Object.keys(values).forEach(function (name) { return values[name].splice(0); });
-        var snapshots = this.list.map(function (fw) { return fw.takeSnapshot(values); });
-        Object.values(values).forEach(function (v) { return v.sort(); });
-        return snapshots;
+    FormStoreItems.prototype.takeSnapshots = function () {
+        return this.list.map(function (fw) { return fw.takeSnapshot(); });
     };
     // =============================================================================================================================
     FormStoreItems.prototype.createFormStoreItem = function (e, p, processed) {
@@ -420,16 +410,15 @@ var Minimap = /** @class */ (function () {
     function Minimap(p, panel) {
         var _this = this;
         this.panel = panel;
-        this.summary = [];
-        this.values = {};
         this.dragData = '';
         this.onUpdateBeingCalled = false;
         this.pendingCompose = false;
         this.pendingLayout = false;
         this.pendingSnapshot = false;
-        this.data = __assign(__assign({}, Snapshot.NULLDATA), { label: p.title });
+        this.summaryData = __assign(__assign({}, Snapshot.NULLDATA), { label: p.title });
         this.minimapId = Minimap.idCounter++;
-        this.verbosity = p.verbosity;
+        this.verbosity = p.verbosity || 0;
+        this.zoomMaxPercent = p.zoomMaxPercent ? Math.min(500, Math.max(100, p.zoomMaxPercent)) : 100;
         var showingSnapshot;
         var ef = panel.ef;
         var frame = (this.frame = ef.createElement('DIV'));
@@ -446,7 +435,7 @@ var Minimap = /** @class */ (function () {
             if (_this.pin.isPinned)
                 return;
             showingSnapshot = undefined;
-            _this.detail.setDisplay(_this.minimapId, _this.data, _this.summary);
+            _this.detail.setDisplay(_this.minimapId, _this.summaryData);
         };
         this.status = ef.createElement('DIV');
         var statusStyle = this.status.style;
@@ -461,7 +450,6 @@ var Minimap = /** @class */ (function () {
         var popup;
         if (p.anchor) {
             panel.add(this, undefined);
-            header.appendChild(title);
             statusStyle.position = 'absolute';
             statusStyle.top = statusStyle.bottom = statusStyle.left = statusStyle.right = '0';
             if (!Minimap.POSITIONS.includes(p.anchor.style.position))
@@ -489,8 +477,8 @@ var Minimap = /** @class */ (function () {
             statusStyle.margin = '1px 2px 0 1px';
             statusStyle.height = '0.5em';
             statusStyle.width = '0.8em';
-            header.appendChild(title);
         }
+        header.appendChild(title);
         this.d = {
             doUpdates: new Debouncer(function () { return _this.doPendingUpdates(); }, p.debounceMsec || 200),
             // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -501,6 +489,7 @@ var Minimap = /** @class */ (function () {
             }),
             updatesParam: {
                 aggregateLabels: p.aggregateLabels || {},
+                aggregateValues: {},
                 ancestors: new WeakMap(),
                 customWidgetIds: [],
                 dynamicLabels: p.dynamicLabels || [],
@@ -513,7 +502,7 @@ var Minimap = /** @class */ (function () {
                 snapshotsPanel: this.snapshotsPanel,
                 snapshotUpcall: {
                     showDetail: function (d) {
-                        return _this.pin.isPinned || _this.detail.setDisplay(_this.minimapId, (showingSnapshot = d), _this.values[d.name]);
+                        return _this.pin.isPinned || _this.detail.setDisplay(_this.minimapId, (showingSnapshot = d));
                     },
                     snapshotHidden: function (e, d) {
                         if (showingSnapshot === d)
@@ -525,7 +514,6 @@ var Minimap = /** @class */ (function () {
                 store: p.store || this,
                 storeListener: function () { return _this.takeSnapshot(); },
                 useWidthToScale: p.useWidthToScale,
-                values: this.values,
                 widgetFactories: p.widgetFactories
             },
             stores: new FormStoreItems()
@@ -547,7 +535,7 @@ var Minimap = /** @class */ (function () {
         };
         frame.onmouseenter = function (ev) {
             if (showingSnapshot)
-                _this.detail.setDisplay(_this.minimapId, showingSnapshot, _this.values[showingSnapshot.name]);
+                _this.detail.setDisplay(_this.minimapId, showingSnapshot);
             if (!_this.pin.isPinned)
                 _this.pin.trackOn(_this.snapshotsPanel, ev);
             if (!p.anchor)
@@ -571,7 +559,7 @@ var Minimap = /** @class */ (function () {
         this.d.updatesParam.store.notifyMinimap(this, true);
     }
     // =============================================================================================================================
-    Minimap.ONUPDATE = function (_) {
+    Minimap.ONUPDATE = function (_, _s) {
         /**/
     };
     // =============================================================================================================================
@@ -649,7 +637,6 @@ var Minimap = /** @class */ (function () {
     };
     // =============================================================================================================================
     Minimap.prototype.doPendingUpdates = function () {
-        var _a;
         if (!this.d)
             return;
         var tStart = this.verbosity ? Date.now() : 0;
@@ -667,24 +654,27 @@ var Minimap = /** @class */ (function () {
         }
         var tLayout = this.verbosity ? Date.now() : 0;
         var tUpdate = tLayout;
-        var data = this.data;
+        var data = this.summaryData;
         if (this.pendingSnapshot) {
-            var snapshots = this.d.stores.takeSnapshot(this.values);
-            this.status.className = data.status = this.snapshotsPanel.computeStatus();
-            var summary_1 = {};
-            if (data.status !== Fmm.STATUS.Disabled)
+            // we need to preserve the aggregateValues references since they are cached in individual FmmSnapshot
+            var aggregateValues = Object.values(this.d.updatesParam.aggregateValues);
+            aggregateValues.forEach(function (v) { return v.splice(0); });
+            var snapshots = this.d.stores.takeSnapshots();
+            aggregateValues.forEach(function (v) { return v.sort(); });
+            data.status = this.snapshotsPanel.computeStatus();
+            this.status.className = Fmm.STATUS_CLASS[data.status];
+            var errorsSummary_1 = {};
+            if (data.status !== 'Disabled')
                 snapshots.filter(function (s) { return s.error && s.status === data.status; })
-                    .forEach(function (s) { return summary_1[s.aggregateLabel || s.label] = s.error; });
-            var summaryKeys = Object.keys(summary_1).sort();
-            (_a = this.summary).splice.apply(_a, __spreadArray([0, this.summary.length], summaryKeys.map(function (key) { return key + ': ' + summary_1[key]; })));
-            var minimapSnapshot = { snapshots: snapshots, status: data.status, title: data.label, values: this.values };
+                    .forEach(function (s) { return errorsSummary_1[s.aggregateLabel || s.label] = s.error; });
+            this.summaryData.aggregateValues = Object.keys(errorsSummary_1).sort().map(function (key) { return key + ': ' + errorsSummary_1[key]; });
             this.detail.refreshDisplay(this.minimapId);
-            this.dragData = JSON.stringify(minimapSnapshot);
+            this.dragData = JSON.stringify({ snapshots: snapshots, status: data.status, title: data.label });
             if (this.verbosity)
                 tUpdate = Date.now();
             if (!this.onUpdateBeingCalled) {
                 this.onUpdateBeingCalled = true;
-                this.d.onUpdate(minimapSnapshot);
+                this.d.onUpdate(snapshots, data.status);
                 this.onUpdateBeingCalled = false;
             }
         }
@@ -988,10 +978,15 @@ var PushPin = /** @class */ (function () {
 // =================================================================================================================================
 var Snapshot = /** @class */ (function () {
     // =============================================================================================================================
-    function Snapshot(aggregateLabel, name, ef, panel, upcall) {
+    function Snapshot(name, p) {
         var _this = this;
-        this.data = __assign(__assign({}, Snapshot.NULLDATA), { aggregateLabel: aggregateLabel, name: name });
-        this.div = ef.createElement('DIV');
+        var aggregateLabel = p.aggregateLabels[name];
+        var panel = p.snapshotsPanel;
+        var upcall = p.snapshotUpcall;
+        if (aggregateLabel && !(name in p.aggregateValues))
+            p.aggregateValues[name] = [];
+        this.data = __assign(__assign({}, Snapshot.NULLDATA), { aggregateLabel: aggregateLabel, aggregateValues: p.aggregateValues[name], name: name });
+        this.div = p.ef.createElement('DIV');
         this.div.style.position = 'absolute';
         this.div.onmouseover = function (ev) {
             ev.stopPropagation();
@@ -1043,15 +1038,17 @@ var Snapshot = /** @class */ (function () {
     };
     // =============================================================================================================================
     Snapshot.prototype.setStatus = function (status) {
-        this.div.className = status;
+        this.div.className = Fmm.STATUS_CLASS[this.data.status = status];
     };
     Snapshot.NULLDATA = {
         aggregateLabel: undefined,
+        aggregateValues: undefined,
         error: undefined,
         label: undefined,
         name: undefined,
         placeholder: undefined,
-        status: undefined
+        status: undefined,
+        value: undefined
     };
     return Snapshot;
 }());
@@ -1106,22 +1103,22 @@ var SnapshotsPanel = /** @class */ (function () {
     };
     // =============================================================================================================================
     SnapshotsPanel.prototype.computeStatus = function () {
-        var allDisabled = Fmm.STATUS.Disabled;
+        var allDisabled = 'Disabled';
         var anyRequired;
         var anyValid;
         var snapshots = this.list;
         for (var i = snapshots.length; --i >= 0;) {
             var status_1 = snapshots[i].data.status;
-            if (status_1 === Fmm.STATUS.Invalid)
-                return Fmm.STATUS.Invalid;
-            if (status_1 !== Fmm.STATUS.Disabled)
+            if (status_1 === 'Invalid')
+                return status_1;
+            if (status_1 !== 'Disabled')
                 allDisabled = undefined;
-            if (status_1 === Fmm.STATUS.Required)
-                anyRequired = Fmm.STATUS.Required;
-            if (status_1 === Fmm.STATUS.Valid)
-                anyValid = Fmm.STATUS.Valid;
+            if (status_1 === 'Required')
+                anyRequired = status_1;
+            if (status_1 === 'Valid')
+                anyValid = status_1;
         }
-        return anyRequired || allDisabled || anyValid || Fmm.STATUS.Optional;
+        return anyRequired || allDisabled || anyValid || 'Optional';
     };
     // =============================================================================================================================
     SnapshotsPanel.prototype.removeSnapshot = function (snapshot, snapshotDiv) {

@@ -12,17 +12,8 @@ export interface FmmFrameworkItem {
     getLabel(name: string, envelope: HTMLElement): HTMLElement;
     getValue(name: string, element: HTMLElement, envelope: HTMLElement, label: string): string;
 }
-export interface FmmMapErrors {
-    [k: string]: string | string[];
-}
 export interface FmmMapString {
     [k: string]: string;
-}
-export interface FmmMapStrings {
-    [k: string]: string[];
-}
-export interface FmmMapValues {
-    [k: string]: unknown;
 }
 export interface FmmMinimap {
     compose(customWidgetIds?: string[]): void;
@@ -45,14 +36,9 @@ export interface FmmMinimapCreateParam {
     useWidthToScale?: boolean;
     verbosity?: number;
     widgetFactories?: FmmWidgetFactory[];
+    zoomMaxPercent?: number;
 }
-export interface FmmMinimapSnapshot {
-    snapshots: FmmSnapshot[];
-    status: string;
-    title: string;
-    values: FmmMapStrings;
-}
-export declare type FmmOnUpdate = (snapshot: Readonly<FmmMinimapSnapshot>) => void;
+export declare type FmmOnUpdate = (snapshots: FmmSnapshot[], status: FmmStatus) => void;
 export interface FmmPanel {
     createMinimap(p: Readonly<FmmMinimapCreateParam>): FmmMinimap;
     destroyDetached(): void;
@@ -61,14 +47,20 @@ export interface FmmPanel {
 export interface FmmSnapshot {
     readonly aggregateLabel: string;
     readonly name: string;
+    aggregateValues: string[];
     error: string;
     label: string;
     placeholder: string;
-    status: string;
+    status: FmmStatus;
+    value: string;
 }
+export declare type FmmStatus = 'Disabled' | 'Invalid' | 'Optional' | 'Required' | 'Valid';
 export interface FmmStore {
     createStoreItem(element: HTMLElement, createDefaultItem: () => FmmStoreItem): FmmStoreItem;
     notifyMinimap(minimap: FmmMinimap, on: boolean): void;
+}
+export interface FmmStoreErrors {
+    [k: string]: string | string[];
 }
 export interface FmmStoreItem {
     destructor(): void;
@@ -76,6 +68,9 @@ export interface FmmStoreItem {
     getName(): string;
     getValue(): unknown;
     isDisabled(): boolean;
+}
+export interface FmmStoreValues {
+    [k: string]: unknown;
 }
 export interface FmmWidget {
     destructor(): void;

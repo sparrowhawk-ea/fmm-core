@@ -3,13 +3,12 @@ import {
 	FmmFramework,
 	FmmFrameworkItem,
 	FmmMapString,
-	FmmMapStrings,
 	FmmMinimap,
 	FmmMinimapCreateParam,
-	FmmMinimapSnapshot,
 	FmmOnUpdate,
 	FmmPanel,
 	FmmSnapshot,
+	FmmStatus,
 	FmmStore,
 	FmmStoreItem,
 	FmmWidget,
@@ -122,7 +121,7 @@ export class Fmm {
 	`;
 
 	// =============================================================================================================================
-	public static readonly STATUS = Object.freeze({
+	public static readonly STATUS_CLASS: Record<FmmStatus, string> = Object.freeze({
 		Disabled: 'fmm-disabled',
 		Invalid: 'fmm-invalid',
 		Optional: 'fmm-optional',
@@ -174,6 +173,13 @@ export class Fmm {
 // =================================================================================================================================
 
 // =================================================================================================================================
+//						A G G R E G A T E V A L U E S
+// =================================================================================================================================
+interface AggregateValues {
+	[k: string]: string[];
+}
+
+// =================================================================================================================================
 //						A N C E S T O R S M A P
 // =================================================================================================================================
 type AncestorsMap = WeakMap<HTMLElement, ClipContext>;
@@ -215,7 +221,7 @@ class Debouncer {
 	private timer?: number;
 
 	// =============================================================================================================================
-	public constructor(private task: () => void, private readonly debounceMsec: number) {}
+	public constructor(private task: () => void, private readonly debounceMsec: number) { }
 
 	// =============================================================================================================================
 	public destructor() {
@@ -270,7 +276,6 @@ class Detail {
 	private readonly value: HTMLTextAreaElement;
 	private data = Snapshot.NULLDATA;
 	private minimapId: number;
-	private values: string[] = [];
 
 	// =============================================================================================================================
 	public constructor(ef: FmmElementFactory, parent: HTMLElement) {
@@ -306,23 +311,22 @@ class Detail {
 		this.error.textContent = this.label.textContent = G.NBSP;
 		this.status.className = this.value.placeholder = this.value.value = '';
 		this.data = Snapshot.NULLDATA;
-		this.values = [];
 	}
 
 	// =============================================================================================================================
 	public refreshDisplay(minimapId: number) {
 		if (minimapId !== this.minimapId) return;
-		const labelPrefix = this.data.aggregateLabel?.concat(': ') || '';
-		this.error.textContent = this.error.title = this.data.error || G.NBSP;
-		this.label.textContent = this.label.title = labelPrefix + this.data.label || G.NBSP;
-		this.status.className = this.data.status;
-		this.value.placeholder = this.data.placeholder || '';
-		this.value.value = this.values?.join('\n');
+		const data = this.data;
+		const labelPrefix = data.aggregateLabel?.concat(': ') || '';
+		this.error.textContent = this.error.title = data.error || G.NBSP;
+		this.label.textContent = this.label.title = labelPrefix + data.label || G.NBSP;
+		this.status.className = Fmm.STATUS_CLASS[data.status];
+		this.value.placeholder = data.placeholder || '';
+		this.value.value = data.aggregateValues ? data.aggregateValues.join('\n') : data.value || '';
 	}
 
 	// =============================================================================================================================
-	public setDisplay(minimapId: number, newData: FmmSnapshot, values: string[]) {
-		this.values = values || [];
+	public setDisplay(minimapId: number, newData: FmmSnapshot) {
 		this.data = newData || Snapshot.NULLDATA;
 		this.refreshDisplay((this.minimapId = minimapId));
 	}
@@ -373,14 +377,13 @@ class FormStoreItem {
 		if (!label && e.parentElement?.tagName === 'LABEL') label = e.parentElement;
 		if (!label && e.previousElementSibling?.tagName === 'LABEL') label = e.previousElementSibling as HTMLElement;
 		const name = store.getName() || FormStoreItem.NAMEPREFIX + String(p.nameCounter++);
-		if (!(name in p.values)) p.values[name] = [];
 		let widget: FmmWidget;
 		this.widget = p.widgetFactories?.find(f => (widget = f.createWidget(name, e))) ? widget : FormStoreItem.DEFAULTWIDGET;
 		this.dynamicLabel = p.dynamicLabels.includes(name);
 		this.framework = p.framework?.createFrameworkItem(name, e) || FormStoreItem.DEFAULTFRAMEWORK;
 		this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label);
 		this.label = label || this.framework.getLabel(name, this.envelope);
-		this.snapshot = new Snapshot(p.aggregateLabels[name], name, p.ef, p.snapshotsPanel, p.snapshotUpcall);
+		this.snapshot = new Snapshot(name, p);
 		this.destructor = () => {
 			this.framework.destructor();
 			store.destructor();
@@ -415,7 +418,7 @@ class FormStoreItem {
 	}
 
 	// =============================================================================================================================
-	public takeSnapshot(values: FmmMapStrings): FmmSnapshot {
+	public takeSnapshot(): FmmSnapshot {
 		const data = this.snapshot.data;
 		const name = data.name;
 		if (data.label === undefined || this.dynamicLabel) {
@@ -428,18 +431,17 @@ class FormStoreItem {
 			const rawValue = this.store.getValue();
 			if (rawValue) displayValue = Fmm.trim(this.widget.getDisplayValue(name, this.e, data.label, rawValue));
 		}
+		data.value = displayValue;
 		const hasValue = !!displayValue;
-		if (hasValue) values[name].push(displayValue);
+		if (hasValue && data.aggregateValues) data.aggregateValues.push(displayValue);
 		data.error = Fmm.trim(this.framework.getError(name, this.e, this.envelope, hasValue) || this.store.getError(hasValue));
-		let status: string;
 		if (this.store.isDisabled()) {
-			status = Fmm.STATUS.Disabled;
+			this.snapshot.setStatus('Disabled');
 		} else if (hasValue) {
-			status = data.error ? Fmm.STATUS.Invalid : Fmm.STATUS.Valid;
+			this.snapshot.setStatus(data.error ? 'Invalid' : 'Valid');
 		} else {
-			status = data.error ? Fmm.STATUS.Required : Fmm.STATUS.Optional;
+			this.snapshot.setStatus(data.error ? 'Required' : 'Optional');
 		}
-		if (status !== data.status) this.snapshot.setStatus((data.status = status));
 		return data;
 	}
 
@@ -493,12 +495,8 @@ class FormStoreItems {
 	}
 
 	// =============================================================================================================================
-	public takeSnapshot(values: FmmMapStrings) {
-		// we need to preserve the values string[] reference, since it may be cached in Detail with the currently displayed Snapshot
-		Object.keys(values).forEach(name => values[name].splice(0));
-		const snapshots = this.list.map(fw => fw.takeSnapshot(values));
-		Object.values(values).forEach(v => v.sort());
-		return snapshots;
+	public takeSnapshots() {
+		return this.list.map(fw => fw.takeSnapshot());
 	}
 
 	// =============================================================================================================================
@@ -533,11 +531,10 @@ const G: {
 class Minimap implements FmmStore {
 	private static readonly POSITIONS = ['absolute', 'fixed', 'relative', 'sticky'];
 	private static idCounter = 0;
-	private readonly data: FmmSnapshot;
 	private readonly minimapId: number;
-	private readonly summary: string[] = [];
-	private readonly values: FmmMapStrings = {};
+	private readonly summaryData: FmmSnapshot;
 	private readonly verbosity: number;
+	private readonly zoomMaxPercent: number;
 	private d: {
 		readonly doUpdates: Debouncer;
 		readonly onUpdate: FmmOnUpdate;
@@ -559,9 +556,10 @@ class Minimap implements FmmStore {
 
 	// =============================================================================================================================
 	public constructor(p: Readonly<FmmMinimapCreateParam>, public panel: Panel) {
-		this.data = { ...Snapshot.NULLDATA, label: p.title };
+		this.summaryData = { ...Snapshot.NULLDATA, label: p.title };
 		this.minimapId = Minimap.idCounter++;
-		this.verbosity = p.verbosity;
+		this.verbosity = p.verbosity || 0;
+		this.zoomMaxPercent = p.zoomMaxPercent ? Math.min(500, Math.max(100, p.zoomMaxPercent)) : 100;
 		let showingSnapshot: FmmSnapshot;
 		const ef = panel.ef;
 		const frame = (this.frame = ef.createElement('DIV'));
@@ -577,7 +575,7 @@ class Minimap implements FmmStore {
 			ev.stopPropagation();
 			if (this.pin.isPinned) return;
 			showingSnapshot = undefined;
-			this.detail.setDisplay(this.minimapId, this.data, this.summary);
+			this.detail.setDisplay(this.minimapId, this.summaryData);
 		};
 		this.status = ef.createElement('DIV');
 		const statusStyle = this.status.style;
@@ -592,7 +590,6 @@ class Minimap implements FmmStore {
 		let popup: Popup;
 		if (p.anchor) {
 			panel.add(this, undefined);
-			header.appendChild(title);
 			statusStyle.position = 'absolute';
 			statusStyle.top = statusStyle.bottom = statusStyle.left = statusStyle.right = '0';
 			if (!Minimap.POSITIONS.includes(p.anchor.style.position)) p.anchor.style.position = 'relative';
@@ -615,8 +612,8 @@ class Minimap implements FmmStore {
 			statusStyle.margin = '1px 2px 0 1px';
 			statusStyle.height = '0.5em';
 			statusStyle.width = '0.8em';
-			header.appendChild(title);
 		}
+		header.appendChild(title);
 		this.d = {
 			doUpdates: new Debouncer(() => this.doPendingUpdates(), p.debounceMsec || 200),
 			// eslint-disable-next-line @typescript-eslint/unbound-method
@@ -627,6 +624,7 @@ class Minimap implements FmmStore {
 			}),
 			updatesParam: {
 				aggregateLabels: p.aggregateLabels || {},
+				aggregateValues: {},
 				ancestors: new WeakMap(),
 				customWidgetIds: [] as string[],
 				dynamicLabels: p.dynamicLabels || ([] as string[]),
@@ -639,7 +637,7 @@ class Minimap implements FmmStore {
 				snapshotsPanel: this.snapshotsPanel,
 				snapshotUpcall: {
 					showDetail: (d: FmmSnapshot) =>
-						this.pin.isPinned || this.detail.setDisplay(this.minimapId, (showingSnapshot = d), this.values[d.name]),
+						this.pin.isPinned || this.detail.setDisplay(this.minimapId, (showingSnapshot = d)),
 					snapshotHidden: (e: HTMLElement, d: FmmSnapshot) => {
 						if (showingSnapshot === d) showingSnapshot = undefined;
 						this.detail.clear(d);
@@ -649,7 +647,6 @@ class Minimap implements FmmStore {
 				store: p.store || this,
 				storeListener: () => this.takeSnapshot(),
 				useWidthToScale: p.useWidthToScale,
-				values: this.values,
 				widgetFactories: p.widgetFactories
 			},
 			stores: new FormStoreItems()
@@ -665,7 +662,7 @@ class Minimap implements FmmStore {
 			if (p.anchor && !popup?.isShowing) showPopups();
 		};
 		frame.onmouseenter = (ev: MouseEvent) => {
-			if (showingSnapshot) this.detail.setDisplay(this.minimapId, showingSnapshot, this.values[showingSnapshot.name]);
+			if (showingSnapshot) this.detail.setDisplay(this.minimapId, showingSnapshot);
 			if (!this.pin.isPinned) this.pin.trackOn(this.snapshotsPanel, ev);
 			if (!p.anchor) showPopups();
 		};
@@ -684,7 +681,7 @@ class Minimap implements FmmStore {
 	}
 
 	// =============================================================================================================================
-	private static ONUPDATE(_: FmmMinimapSnapshot) {
+	private static ONUPDATE(_: FmmSnapshot[], _s: FmmStatus) {
 		/**/
 	}
 
@@ -777,23 +774,26 @@ class Minimap implements FmmStore {
 		}
 		const tLayout = this.verbosity ? Date.now() : 0;
 		let tUpdate = tLayout;
-		const data = this.data;
+		const data = this.summaryData;
 		if (this.pendingSnapshot) {
-			const snapshots = this.d.stores.takeSnapshot(this.values);
-			this.status.className = data.status = this.snapshotsPanel.computeStatus();
-			const summary: Record<string, string> = {};
-			if (data.status !== Fmm.STATUS.Disabled)
+			// we need to preserve the aggregateValues references since they are cached in individual FmmSnapshot
+			const aggregateValues = Object.values(this.d.updatesParam.aggregateValues);
+			aggregateValues.forEach(v => v.splice(0));
+			const snapshots = this.d.stores.takeSnapshots();
+			aggregateValues.forEach(v => v.sort());
+			data.status = this.snapshotsPanel.computeStatus();
+			this.status.className = Fmm.STATUS_CLASS[data.status];
+			const errorsSummary: Record<string, string> = {};
+			if (data.status !== 'Disabled')
 				snapshots.filter(s => s.error && s.status === data.status)
-					.forEach(s => summary[s.aggregateLabel || s.label] = s.error);
-			const summaryKeys = Object.keys(summary).sort();
-			this.summary.splice(0, this.summary.length, ...summaryKeys.map(key => key + ': ' + summary[key]));
-			const minimapSnapshot: FmmMinimapSnapshot = { snapshots, status: data.status, title: data.label, values: this.values };
+					.forEach(s => errorsSummary[s.aggregateLabel || s.label] = s.error);
+			this.summaryData.aggregateValues = Object.keys(errorsSummary).sort().map(key => key + ': ' + errorsSummary[key]);
 			this.detail.refreshDisplay(this.minimapId);
-			this.dragData = JSON.stringify(minimapSnapshot);
+			this.dragData = JSON.stringify({ snapshots, status: data.status, title: data.label });
 			if (this.verbosity) tUpdate = Date.now();
 			if (!this.onUpdateBeingCalled) {
 				this.onUpdateBeingCalled = true;
-				this.d.onUpdate(minimapSnapshot);
+				this.d.onUpdate(snapshots, data.status);
 				this.onUpdateBeingCalled = false;
 			}
 		}
@@ -854,7 +854,7 @@ class Panel implements FmmPanel {
 			divStyle.height = divStyle.width = '100%';
 			divStyle.overflowX = vertical ? 'hidden' : 'scroll';
 			divStyle.overflowY = vertical ? 'scroll' : 'hidden';
-			divStyle.whiteSpace = vertical ? 'none' : 'nowrap';	
+			divStyle.whiteSpace = vertical ? 'none' : 'nowrap';
 		}
 	}
 
@@ -1099,20 +1099,31 @@ class PushPin {
 class Snapshot {
 	public static readonly NULLDATA: FmmSnapshot = {
 		aggregateLabel: undefined,
+		aggregateValues: undefined,
 		error: undefined,
 		label: undefined,
 		name: undefined,
 		placeholder: undefined,
-		status: undefined
+		status: undefined,
+		value: undefined
 	};
 	public readonly data: FmmSnapshot;
 	private readonly div: HTMLElement;
 	private rect: DOMRectReadOnly;
 
 	// =============================================================================================================================
-	public constructor(aggregateLabel: string, name: string, ef: FmmElementFactory, panel: SnapshotsPanel, upcall: SnapshotUpcall) {
-		this.data = { ...Snapshot.NULLDATA, aggregateLabel, name };
-		this.div = ef.createElement('DIV');
+	public constructor(name: string, p: UpdatesParam) {
+		const aggregateLabel = p.aggregateLabels[name];
+		const panel = p.snapshotsPanel;
+		const upcall = p.snapshotUpcall;
+		if (aggregateLabel && !(name in p.aggregateValues)) p.aggregateValues[name] = [];
+		this.data = {
+			...Snapshot.NULLDATA,
+			aggregateLabel,
+			aggregateValues: p.aggregateValues[name],
+			name
+		};
+		this.div = p.ef.createElement('DIV');
 		this.div.style.position = 'absolute';
 		this.div.onmouseover = (ev: MouseEvent) => {
 			ev.stopPropagation();
@@ -1167,8 +1178,8 @@ class Snapshot {
 	}
 
 	// =============================================================================================================================
-	public setStatus(status: string) {
-		this.div.className = status;
+	public setStatus(status: FmmStatus) {
+		this.div.className = Fmm.STATUS_CLASS[this.data.status = status];
 	}
 }
 
@@ -1223,19 +1234,19 @@ class SnapshotsPanel {
 	}
 
 	// =============================================================================================================================
-	public computeStatus() {
-		let allDisabled = Fmm.STATUS.Disabled;
-		let anyRequired: string;
-		let anyValid: string;
+	public computeStatus(): FmmStatus {
+		let allDisabled: FmmStatus = 'Disabled';
+		let anyRequired: FmmStatus;
+		let anyValid: FmmStatus;
 		const snapshots = this.list;
-		for (let i = snapshots.length; --i >= 0; ) {
+		for (let i = snapshots.length; --i >= 0;) {
 			const status = snapshots[i].data.status;
-			if (status === Fmm.STATUS.Invalid) return Fmm.STATUS.Invalid;
-			if (status !== Fmm.STATUS.Disabled) allDisabled = undefined;
-			if (status === Fmm.STATUS.Required) anyRequired = Fmm.STATUS.Required;
-			if (status === Fmm.STATUS.Valid) anyValid = Fmm.STATUS.Valid;
+			if (status === 'Invalid') return status;
+			if (status !== 'Disabled') allDisabled = undefined;
+			if (status === 'Required') anyRequired = status;
+			if (status === 'Valid') anyValid = status;
 		}
-		return anyRequired || allDisabled || anyValid || Fmm.STATUS.Optional;
+		return anyRequired || allDisabled || anyValid || 'Optional';
 	}
 
 	// =============================================================================================================================
@@ -1376,7 +1387,7 @@ class StoreItemSelect extends StoreItem {
 		if (!this.isMultiple) return [index];
 		const indexes: number[] = [];
 		const options = this.e.options;
-		for (let i = options.length; --i >= index; ) if (options[i].selected) indexes.push(i);
+		for (let i = options.length; --i >= index;) if (options[i].selected) indexes.push(i);
 		return indexes.reverse();
 	}
 }
@@ -1401,6 +1412,7 @@ class StoreItemTextArea extends StoreItem {
 // =================================================================================================================================
 interface UpdatesParam {
 	readonly aggregateLabels: FmmMapString;
+	readonly aggregateValues: AggregateValues;
 	readonly dynamicLabels: string[];
 	readonly ef: FmmElementFactory;
 	readonly form: HTMLFormElement;
@@ -1412,7 +1424,6 @@ interface UpdatesParam {
 	readonly store: FmmStore;
 	readonly storeListener: EventListener;
 	readonly useWidthToScale: boolean;
-	readonly values: FmmMapStrings;
 	readonly widgetFactories: FmmWidgetFactory[];
 	ancestors: AncestorsMap;
 	customWidgetIds: string[];
