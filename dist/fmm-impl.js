@@ -9,13 +9,11 @@ var Fmm = /** @class */ (function () {
     Fmm.createMinimap = function (p, parent, ef) {
         var err = 'FmmMinimap not created: invalid ';
         if (parent) {
-            if (!(parent instanceof HTMLElement))
-                throw new Error(err + 'parent');
             var panel = new Panel(ef, parent, undefined, true);
             return panel.createMinimap(__assign(__assign({}, p), { anchor: undefined, usePanelDetail: true }));
         }
         else {
-            if (!(p.anchor instanceof HTMLElement))
+            if (!p.anchor)
                 throw new Error(err + 'anchor');
             var panel = new Panel(ef, undefined, undefined, false);
             return panel.createMinimap(__assign(__assign({}, p), { usePanelDetail: false }));
@@ -24,10 +22,8 @@ var Fmm = /** @class */ (function () {
     // =============================================================================================================================
     Fmm.createPanel = function (parent, detailParent, vertical, ef) {
         var err = 'FmmPanel not created: invalid ';
-        if (!(parent instanceof HTMLElement))
+        if (!parent)
             throw new Error(err + 'parent');
-        if (detailParent && !(detailParent instanceof HTMLElement))
-            throw new Error(err + 'detailParent');
         return new Panel(ef, parent, detailParent, vertical);
     };
     // =============================================================================================================================
@@ -211,46 +207,41 @@ var Detail = /** @class */ (function () {
 // =================================================================================================================================
 var FormStoreItem = /** @class */ (function () {
     // =============================================================================================================================
-    function FormStoreItem(e, store, p) {
-        var _this = this;
+    function FormStoreItem(name, e, storeItem, p) {
         var _a, _b, _c, _d;
         this.e = e;
-        this.store = store;
+        this.storeItem = storeItem;
         var label = e.id ? p.page.querySelector('label[for=' + e.id + ']') : undefined;
         if (!label && ((_a = e.parentElement) === null || _a === void 0 ? void 0 : _a.tagName) === 'LABEL')
             label = e.parentElement;
         if (!label && ((_b = e.previousElementSibling) === null || _b === void 0 ? void 0 : _b.tagName) === 'LABEL')
             label = e.previousElementSibling;
-        var name = store.getName() || FormStoreItem.NAMEPREFIX + String(p.nameCounter++);
         var widget;
-        this.widget = ((_c = p.widgetFactories) === null || _c === void 0 ? void 0 : _c.find(function (f) { return (widget = f.createWidget(name, e)); })) ? widget : FormStoreItem.DEFAULTWIDGET;
+        this.widget = ((_c = p.widgetFactories) === null || _c === void 0 ? void 0 : _c.find(function (f) { return (widget = f.createWidget(name, e)); })) ? widget : FormStoreItem.DEFAULT_WIDGET;
         this.dynamicLabel = p.dynamicLabels.includes(name);
-        this.framework = ((_d = p.framework) === null || _d === void 0 ? void 0 : _d.createFrameworkItem(name, e)) || FormStoreItem.DEFAULTFRAMEWORK;
+        this.framework = ((_d = p.framework) === null || _d === void 0 ? void 0 : _d.createFrameworkItem(name, e)) || FormStoreItem.DEFAULT_FRAMEWORK;
         this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label);
         this.label = label || this.framework.getLabel(name, this.envelope);
         this.snapshot = new Snapshot(name, p);
-        this.destructor = function () {
-            _this.framework.destructor();
-            store.destructor();
-            _this.widget.destructor();
-        };
     }
     // =============================================================================================================================
     FormStoreItem.prototype.destructor = function () {
-        // function body overwritten in constructor
+        this.framework.destructor();
+        this.storeItem.destructor();
+        this.widget.destructor();
     };
     // =============================================================================================================================
-    FormStoreItem.prototype.layoutSnapshot = function (p, pageRect, scale) {
+    FormStoreItem.prototype.layoutSnapshot = function (ancestors, pageRect, scale) {
         var parent = this.envelope.parentElement;
-        var clipContext = p.ancestors.get(parent) || this.getClipContext(parent, p.ancestors);
+        var clipContext = ancestors.get(parent) || this.getClipContext(parent, ancestors);
         var rect = clipContext.clipRect(this.envelope.getBoundingClientRect());
         if (!rect.width || !rect.height)
-            return this.snapshot.setRect(undefined, p.snapshotUpcall);
+            return this.snapshot.setRect(undefined);
         var left = Math.floor((rect.left - pageRect.left) * scale);
         var top = Math.floor((rect.top - pageRect.top) * scale);
         var height = Math.max(2, Math.floor(rect.height * scale));
         var width = Math.max(2, Math.floor(rect.width * scale));
-        return this.snapshot.setRect(new DOMRectReadOnly(left, top, width, height), p.snapshotUpcall);
+        return this.snapshot.setRect(new DOMRectReadOnly(left, top, width, height));
     };
     // =============================================================================================================================
     FormStoreItem.prototype.removeIfDetached = function () {
@@ -272,7 +263,7 @@ var FormStoreItem = /** @class */ (function () {
         }
         var displayValue = Fmm.trim(this.framework.getValue(name, this.e, this.envelope, data.label));
         if (!displayValue) {
-            var rawValue = this.store.getValue();
+            var rawValue = this.storeItem.getValue();
             if (rawValue)
                 displayValue = Fmm.trim(this.widget.getDisplayValue(name, this.e, data.label, rawValue));
         }
@@ -280,8 +271,8 @@ var FormStoreItem = /** @class */ (function () {
         var hasValue = !!displayValue;
         if (hasValue && data.aggregateValues)
             data.aggregateValues.push(displayValue);
-        data.error = Fmm.trim(this.framework.getError(name, this.e, this.envelope, hasValue) || this.store.getError(hasValue));
-        if (this.store.isDisabled()) {
+        data.error = Fmm.trim(this.framework.getError(name, this.e, this.envelope, hasValue) || this.storeItem.getError(hasValue));
+        if (this.storeItem.isDisabled()) {
             this.snapshot.setStatus('Disabled');
         }
         else if (hasValue) {
@@ -309,14 +300,14 @@ var FormStoreItem = /** @class */ (function () {
             parent = parent.parentElement;
         return parent || e;
     };
-    FormStoreItem.DEFAULTFRAMEWORK = {
+    FormStoreItem.DEFAULT_FRAMEWORK = {
         destructor: function () { return undefined; },
         getEnvelope: function (_, _e, _l) { return undefined; },
         getError: function (_, _e, _n, _v) { return undefined; },
         getLabel: function (_, _e) { return undefined; },
         getValue: function (_, _e, _n, _l) { return undefined; }
     };
-    FormStoreItem.DEFAULTWIDGET = {
+    FormStoreItem.DEFAULT_WIDGET = {
         destructor: function () { return undefined; },
         getDisplayValue: function (_, e, label, value) {
             var tag = e.tagName;
@@ -339,7 +330,6 @@ var FormStoreItem = /** @class */ (function () {
             return String(value);
         }
     };
-    FormStoreItem.NAMEPREFIX = '$Fmm';
     return FormStoreItem;
 }());
 // =================================================================================================================================
@@ -349,6 +339,7 @@ var FormStoreItems = /** @class */ (function () {
     function FormStoreItems() {
         this.list = [];
         this.ignore = new WeakSet();
+        this.nameCounter = 0;
     }
     // =============================================================================================================================
     FormStoreItems.prototype.destructor = function () {
@@ -356,39 +347,135 @@ var FormStoreItems = /** @class */ (function () {
         this.list.splice(0).forEach(function (fw) { return fw.destructor(); });
     };
     // =============================================================================================================================
-    FormStoreItems.prototype.compose = function (p) {
+    FormStoreItems.prototype.compose = function (elements, p, store, storeListener) {
         var _this = this;
         var prev = this.list.splice(0);
         prev.forEach(function (fw) { return fw.removeIfDetached() || _this.list.push(fw); });
         var processed = new WeakSet();
         this.list.forEach(function (fw) { return processed.add(fw.e); });
-        Array.from(p.form.elements).forEach(function (e) { return _this.createFormStoreItem(e, p, processed); });
-        if (!p.customWidgetIds.length)
-            return;
-        var custom = p.page.querySelectorAll('#' + p.customWidgetIds.join(',#'));
-        custom.forEach(function (e) { return _this.createFormStoreItem(e, p, processed); });
+        elements.forEach(function (e) {
+            if (processed.has(e) || _this.ignore.has(e))
+                return undefined;
+            if (e.hidden)
+                return _this.ignore.add(e);
+            var storeItem = store.createStoreItem(e, function () { return StoreItem.NEW(e, storeListener); });
+            if (storeItem) {
+                var name_1 = storeItem.getName() || FormStoreItems.NAMEPREFIX + String(_this.nameCounter++);
+                _this.list.push(new FormStoreItem(name_1, e, storeItem, p));
+            }
+            processed.add(e);
+        });
     };
     // =============================================================================================================================
-    FormStoreItems.prototype.layoutSnapshots = function (p, pageRect, scale) {
-        p.ancestors = new WeakMap();
-        this.list.forEach(function (fw) { return fw.layoutSnapshot(p, pageRect, scale); });
+    FormStoreItems.prototype.layoutSnapshots = function (ancestors, pageRect, scale) {
+        this.list.forEach(function (fw) { return fw.layoutSnapshot(ancestors, pageRect, scale); });
     };
     // =============================================================================================================================
     FormStoreItems.prototype.takeSnapshots = function () {
         return this.list.map(function (fw) { return fw.takeSnapshot(); });
     };
-    // =============================================================================================================================
-    FormStoreItems.prototype.createFormStoreItem = function (e, p, processed) {
-        if (processed.has(e) || this.ignore.has(e))
-            return undefined;
-        if (e.hidden)
-            return this.ignore.add(e);
-        var store = p.store.createStoreItem(e, function () { return StoreItem.NEW(e, p.storeListener); });
-        if (store)
-            this.list.push(new FormStoreItem(e, store, p));
-        return processed.add(e);
-    };
+    FormStoreItems.NAMEPREFIX = '$FmmFSI';
     return FormStoreItems;
+}());
+// =================================================================================================================================
+//						F R A M E
+// =================================================================================================================================
+var Frame = /** @class */ (function () {
+    // =============================================================================================================================
+    function Frame(minimap, panel, anchor, status, zoomFactor) {
+        this.dragData = '';
+        var ef = panel.ef;
+        var div = (this.div = ef.createElement('DIV'));
+        div.className = Fmm.CLASS.MinimapFrame;
+        div.draggable = true;
+        div.ondragstart = this.onDragStart.bind(this);
+        div.style.cursor = 'grab';
+        div.style.position = 'relative';
+        var header = div.appendChild(ef.createElement('DIV'));
+        header.className = Fmm.CLASS.Header;
+        header.style.overflow = 'hidden';
+        header.style.whiteSpace = 'nowrap';
+        header.onmouseenter = minimap.onHeaderEnter.bind(minimap);
+        var title = G.ELLIPSIS(ef.createElement('LABEL'));
+        title.className = Fmm.CLASS.Title;
+        title.style.cursor = 'inherit';
+        title.textContent = title.title = minimap.title;
+        var statusStyle = status.style;
+        if (anchor) {
+            panel.add(minimap, undefined);
+            statusStyle.position = 'absolute';
+            statusStyle.top = statusStyle.bottom = statusStyle.left = statusStyle.right = '0';
+            if (!Frame.POSITIONS.includes(anchor.style.position))
+                anchor.style.position = 'relative';
+            anchor.appendChild(status);
+            this.popup = new Popup(ef, Fmm.CLASS.MinimapPopup, this.div, status);
+            if (zoomFactor)
+                this.popup.setZoomable(minimap, header, Math.min(Frame.MAX_ZOOMFACTOR, Math.max(0.0, zoomFactor)));
+            var prev = status.previousElementSibling;
+            while (prev && !prev.className.includes('fmm-'))
+                prev = prev.previousElementSibling;
+            if (prev)
+                anchor.removeChild(prev);
+            this.setDestroyOnDetachFromDOM(anchor, status);
+        }
+        else {
+            panel.add(minimap, div);
+            header.appendChild(status);
+            statusStyle.display = 'inline-block';
+            statusStyle.margin = '1px 2px 0 1px';
+            statusStyle.height = '0.5em';
+            statusStyle.width = '0.8em';
+        }
+        header.appendChild(title);
+        div.onmouseenter = minimap.onFrameEnter.bind(minimap);
+        div.onmouseleave = minimap.onFrameLeave.bind(minimap);
+    }
+    // =============================================================================================================================
+    Frame.prototype.destructor = function () {
+        if (!this.div)
+            return;
+        this.detach();
+        if (this.popup)
+            this.popup.destructor();
+        this.popup = undefined;
+        this.div.onmouseenter = this.div.onmouseleave = undefined;
+        this.div.parentElement.removeChild(this.div);
+        this.div = undefined;
+    };
+    // =============================================================================================================================
+    Frame.prototype.detach = function () {
+        if (!this.div)
+            return;
+        if (this.popup)
+            this.div.parentElement.classList.add(Fmm.CLASS.Detached);
+        else
+            this.div.classList.add(Fmm.CLASS.Detached);
+    };
+    // =============================================================================================================================
+    Frame.prototype.newDetailPopup = function (ef, detail) {
+        return new Popup(ef, Fmm.CLASS.DetailPopup, detail.e, this.div);
+    };
+    // =============================================================================================================================
+    Frame.prototype.setSnapshotResult = function (result) {
+        this.dragData = JSON.stringify(result);
+    };
+    // =============================================================================================================================
+    Frame.prototype.onDragStart = function (ev) {
+        ev.dataTransfer.setData('text/plain', this.dragData);
+    };
+    // =============================================================================================================================
+    Frame.prototype.setDestroyOnDetachFromDOM = function (anchor, status) {
+        var _this = this;
+        new MutationObserver(function (_, observer) {
+            if (status.parentElement === anchor)
+                return;
+            observer.disconnect();
+            _this.destructor();
+        }).observe(anchor, { childList: true });
+    };
+    Frame.POSITIONS = ['absolute', 'fixed', 'relative', 'sticky'];
+    Frame.MAX_ZOOMFACTOR = 5.0;
+    return Frame;
 }());
 // =================================================================================================================================
 //						G
@@ -400,7 +487,8 @@ var G = {
         e.style.whiteSpace = 'nowrap';
         return e;
     },
-    NBSP: '\u00a0'
+    NBSP: '\u00a0',
+    NOP: function () { }
 };
 // =================================================================================================================================
 //						M I N I M A P
@@ -410,157 +498,60 @@ var Minimap = /** @class */ (function () {
     function Minimap(p, panel) {
         var _this = this;
         this.panel = panel;
-        this.dragData = '';
         this.onUpdateBeingCalled = false;
         this.pendingCompose = false;
         this.pendingLayout = false;
         this.pendingSnapshot = false;
-        this.summaryData = __assign(__assign({}, Snapshot.NULLDATA), { label: p.title });
-        this.minimapId = Minimap.idCounter++;
-        this.verbosity = p.verbosity || 0;
-        this.zoomMaxPercent = p.zoomMaxPercent ? Math.min(500, Math.max(100, p.zoomMaxPercent)) : 100;
-        var showingSnapshot;
         var ef = panel.ef;
-        var frame = (this.frame = ef.createElement('DIV'));
-        frame.className = Fmm.CLASS.MinimapFrame;
-        frame.draggable = true;
-        frame.ondragstart = function (ev) { return ev.dataTransfer.setData('text/plain', _this.dragData); };
-        frame.style.cursor = 'grab';
-        frame.style.position = 'relative';
-        var header = frame.appendChild(ef.createElement('DIV'));
-        header.className = Fmm.CLASS.Header;
-        header.style.overflow = 'hidden';
-        header.onmouseenter = function (ev) {
-            ev.stopPropagation();
-            if (_this.pin.isPinned)
-                return;
-            showingSnapshot = undefined;
-            _this.detail.setDisplay(_this.minimapId, _this.summaryData);
-        };
+        this.anchored = !!p.anchor;
         this.status = ef.createElement('DIV');
-        var statusStyle = this.status.style;
-        var title = G.ELLIPSIS(ef.createElement('LABEL'));
-        title.className = Fmm.CLASS.Title;
-        title.textContent = title.title = p.title;
+        this.summaryData = __assign(__assign({}, Snapshot.NULLDATA), { label: p.title });
+        this.title = p.title;
+        var frame = (this.frame = new Frame(this, panel, p.anchor, this.status, p.zoomFactor));
+        this.snapshotsPanel = new SnapshotsPanel(ef, frame.div);
+        this.pin = new PushPin(ef, frame.div);
+        this.minimapId = Minimap.idCounter++;
+        this.useWidthToScale = p.useWidthToScale;
+        this.verbosity = p.verbosity || 0;
         this.detail = p.usePanelDetail ? panel.detail : new Detail(ef, undefined);
-        if (!p.usePanelDetail)
-            this.detailPopup = new Popup(ef, Fmm.CLASS.DetailPopup, this.detail.e, p.anchor ? this.frame : panel.popupParent);
-        this.snapshotsPanel = new SnapshotsPanel(ef, frame);
-        this.pin = new PushPin(ef, frame);
-        var popup;
-        if (p.anchor) {
-            panel.add(this, undefined);
-            statusStyle.position = 'absolute';
-            statusStyle.top = statusStyle.bottom = statusStyle.left = statusStyle.right = '0';
-            if (!Minimap.POSITIONS.includes(p.anchor.style.position))
-                p.anchor.style.position = 'relative';
-            p.anchor.appendChild(this.status);
-            popup = new Popup(ef, Fmm.CLASS.MinimapPopup, this.frame, this.status);
-            var prev = this.status.previousElementSibling;
-            while (prev && !prev.className.includes('fmm-'))
-                prev = prev.previousElementSibling;
-            if (prev)
-                p.anchor.removeChild(prev);
-            new MutationObserver(function (_, observer) {
-                if (!_this.status || _this.status.parentElement === p.anchor)
-                    return;
-                observer.disconnect();
-                _this.destructor();
-                popup.destructor();
-            }).observe(p.anchor, { childList: true });
-        }
-        else {
-            panel.add(this, frame);
-            header.style.whiteSpace = 'nowrap';
-            header.appendChild(this.status);
-            statusStyle.display = 'inline-block';
-            statusStyle.margin = '1px 2px 0 1px';
-            statusStyle.height = '0.5em';
-            statusStyle.width = '0.8em';
-        }
-        header.appendChild(title);
         this.d = {
-            doUpdates: new Debouncer(function () { return _this.doPendingUpdates(); }, p.debounceMsec || 200),
+            clipContextAncestors: new WeakMap(),
+            customWidgetIds: [],
+            doUpdates: new Debouncer(function () { return _this.doPendingUpdates(); }, p.debounceMsec || Minimap.DEFAULT_DEBOUNCEMSEC),
+            form: p.form,
             // eslint-disable-next-line @typescript-eslint/unbound-method
             onUpdate: p.onUpdate || Minimap.ONUPDATE,
-            resizeObserver: new ResizeObserver(function () {
-                _this.pendingLayout = true;
-                _this.d.doUpdates.schedule();
-            }),
-            updatesParam: {
+            paramConstructor: {
                 aggregateLabels: p.aggregateLabels || {},
                 aggregateValues: {},
-                ancestors: new WeakMap(),
-                customWidgetIds: [],
                 dynamicLabels: p.dynamicLabels || [],
                 ef: ef,
-                form: p.form,
                 framework: p.framework,
-                nameCounter: 1,
                 page: p.page || p.form,
-                popup: popup,
-                snapshotsPanel: this.snapshotsPanel,
                 snapshotUpcall: {
-                    showDetail: function (d) {
-                        return _this.pin.isPinned || _this.detail.setDisplay(_this.minimapId, (showingSnapshot = d));
-                    },
-                    snapshotHidden: function (e, d) {
-                        if (showingSnapshot === d)
-                            showingSnapshot = undefined;
-                        _this.detail.clear(d);
-                        _this.pin.trackOff(e, frame);
-                    }
+                    hideDetail: this.snapshotHidden.bind(this),
+                    showDetail: this.snapshotActive.bind(this)
                 },
-                store: p.store || this,
-                storeListener: function () { return _this.takeSnapshot(); },
-                useWidthToScale: p.useWidthToScale,
+                snapshotsPanel: this.snapshotsPanel,
                 widgetFactories: p.widgetFactories
             },
-            stores: new FormStoreItems()
+            resizeObserver: new ResizeObserver(this.onFormResize.bind(this)),
+            store: p.store || this,
+            storeItems: new FormStoreItems(),
+            storeListener: this.takeSnapshot.bind(this)
         };
-        var showPopups = function () {
-            if (_this.d)
-                _this.d.doUpdates.doNow();
-            if (popup)
-                popup.show(true);
-            if (_this.detailPopup)
-                _this.detailPopup.show(false);
-            else
-                _this.panel.showDetailPopup();
-        };
-        this.status.onmouseover = function (ev) {
-            ev.stopPropagation();
-            if (p.anchor && !(popup === null || popup === void 0 ? void 0 : popup.isShowing))
-                showPopups();
-        };
-        frame.onmouseenter = function (ev) {
-            if (showingSnapshot)
-                _this.detail.setDisplay(_this.minimapId, showingSnapshot);
-            if (!_this.pin.isPinned)
-                _this.pin.trackOn(_this.snapshotsPanel, ev);
-            if (!p.anchor)
-                showPopups();
-        };
-        frame.onmouseleave = function () {
-            if (_this.pin.isPinned)
-                return;
-            _this.pin.trackOff(undefined, frame);
-            if (_this.detailPopup)
-                _this.detailPopup.hide();
-            else
-                _this.panel.hideDetailPopup();
-            if (popup)
-                popup.hide();
-        };
+        if (!p.usePanelDetail)
+            this.detailPopup = this.anchored ? frame.newDetailPopup(ef, this.detail) : panel.newDetailPopup(this.detail);
+        this.status.onmouseover = this.onStatusEnter.bind(this);
         this.updateLayoutOnScroll = this.updateLayoutOnScroll.bind(this);
         this.d.resizeObserver.observe(p.form);
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        this.d.updatesParam.page.addEventListener('scroll', this.updateLayoutOnScroll, true);
-        this.d.updatesParam.store.notifyMinimap(this, true);
+        this.d.paramConstructor.page.addEventListener('scroll', this.updateLayoutOnScroll, true);
+        this.d.store.notifyMinimap(this, true);
     }
     // =============================================================================================================================
-    Minimap.ONUPDATE = function (_, _s) {
-        /**/
+    Minimap.ONUPDATE = function (_) {
+        // no-op
     };
     // =============================================================================================================================
     Minimap.prototype.destructor = function () {
@@ -569,33 +560,57 @@ var Minimap = /** @class */ (function () {
         if (!((_a = this.status) === null || _a === void 0 ? void 0 : _a.parentElement))
             return; // called recursively by MutationObserver
         this.status.parentElement.removeChild(this.status); // may trigger MutationObserver
-        this.snapshotsPanel.destructor(); // snapshot destructors call detail
+        this.snapshotsPanel.destructor(); // snapshot destructors call detail and pin so destruction order matters
         this.snapshotsPanel = undefined;
+        this.pin.destructor();
+        this.pin = undefined;
+        this.frame.destructor();
+        this.frame = undefined;
         if (this.detail !== this.panel.detail)
             this.detail.destructor();
         this.detail = undefined;
         if (this.detailPopup)
             this.detailPopup.destructor();
         this.detailPopup = undefined;
-        this.frame.onmouseenter = this.frame.onmouseleave = undefined;
-        this.panel.remove(this, this.frame);
-        this.frame = undefined;
+        this.panel.remove(this);
         this.panel = undefined;
-        this.pin.destructor();
-        this.pin = undefined;
         this.status = undefined;
     };
     // =============================================================================================================================
     Minimap.prototype.compose = function (customWidgetIds) {
         if (!this.d)
             return;
-        this.d.updatesParam.customWidgetIds = customWidgetIds || [];
+        this.d.customWidgetIds = customWidgetIds || [];
         this.updateComposition();
     };
     // =============================================================================================================================
     Minimap.prototype.createStoreItem = function (_, createDefaultStoreItem) {
         return createDefaultStoreItem();
     };
+    Object.defineProperty(Minimap.prototype, "isDetached", {
+        // =============================================================================================================================
+        get: function () {
+            return this.d === undefined;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Minimap.prototype, "isPinned", {
+        // =============================================================================================================================
+        get: function () {
+            return this.pin.isPinned;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Minimap.prototype, "isPinnedToPanelDetail", {
+        // =============================================================================================================================
+        get: function () {
+            return this.pin.isPinned && this.detail === this.panel.detail;
+        },
+        enumerable: false,
+        configurable: true
+    });
     // =============================================================================================================================
     Minimap.prototype.detach = function () {
         if (!this.d)
@@ -605,28 +620,72 @@ var Minimap = /** @class */ (function () {
         this.pendingCompose = this.pendingLayout = false;
         this.pendingSnapshot = true;
         this.doPendingUpdates();
-        if (this.d.updatesParam.popup)
-            this.frame.parentElement.className += ' ' + Fmm.CLASS.Detached;
-        else
-            this.frame.className += ' ' + Fmm.CLASS.Detached;
+        this.frame.detach();
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        this.d.updatesParam.page.removeEventListener('scroll', this.updateLayoutOnScroll, true);
-        this.d.updatesParam.store.notifyMinimap(this, false);
-        this.d.stores.destructor();
+        this.d.paramConstructor.page.removeEventListener('scroll', this.updateLayoutOnScroll, true);
+        this.d.store.notifyMinimap(this, false);
+        this.d.storeItems.destructor();
         this.d = undefined;
     };
     // =============================================================================================================================
-    Minimap.prototype.isDetached = function () {
-        return this.d === undefined;
-    };
-    // =============================================================================================================================
-    Minimap.prototype.isPinnedToPanelDetail = function () {
-        return this.pin.isPinned && this.detail === this.panel.detail;
+    Minimap.prototype.layout = function (zoomEvent) {
+        var tStart = zoomEvent && this.verbosity ? Date.now() : 0;
+        this.d.clipContextAncestors = new WeakMap();
+        var pageRect = this.d.paramConstructor.page.getBoundingClientRect();
+        if (pageRect.height && pageRect.width) {
+            var scale = this.snapshotsPanel.computeScale(pageRect, this.frame, this.useWidthToScale);
+            this.snapshotsPanel.show(false);
+            this.d.storeItems.layoutSnapshots(this.d.clipContextAncestors, pageRect, scale);
+            this.snapshotsPanel.show(true);
+            if (zoomEvent) {
+                this.pin.trackOff(undefined, this.frame);
+                this.pin.trackOn(this.snapshotsPanel, zoomEvent);
+            }
+        }
+        if (zoomEvent && this.verbosity)
+            console.log('FormMinimap[' + this.title + '] Layout(ms)=' + String(Date.now() - tStart));
     };
     // =============================================================================================================================
     Minimap.prototype.notifyMinimap = function (_, _on) {
-        /**/
+        // no-op
     };
+    // =============================================================================================================================
+    Minimap.prototype.onFrameEnter = function (ev) {
+        if (!this.pin.isPinned)
+            this.pin.trackOn(this.snapshotsPanel, ev);
+        if (this.activeSnapshot)
+            this.detail.setDisplay(this.minimapId, this.activeSnapshot);
+        if (!this.anchored)
+            this.showPopups();
+    };
+    // =============================================================================================================================
+    Minimap.prototype.onFrameLeave = function () {
+        if (this.isPinned)
+            return;
+        this.pin.trackOff(undefined, this.frame);
+        if (this.detailPopup)
+            this.detailPopup.hide();
+        else
+            this.panel.hideDetailPopup();
+        if (this.frame.popup)
+            this.frame.popup.hide();
+    };
+    // =============================================================================================================================
+    Minimap.prototype.onHeaderEnter = function (ev) {
+        ev.stopPropagation();
+        if (this.pin.isPinned)
+            return;
+        this.activeSnapshot = undefined;
+        this.detail.setDisplay(this.minimapId, this.summaryData);
+    };
+    // =============================================================================================================================
+    Minimap.prototype.onStatusEnter = function (ev) {
+        var _a;
+        ev.stopPropagation();
+        if (this.anchored && !((_a = this.frame.popup) === null || _a === void 0 ? void 0 : _a.isShowing))
+            this.showPopups();
+    };
+    ;
     // =============================================================================================================================
     Minimap.prototype.takeSnapshot = function () {
         if (!this.d)
@@ -639,42 +698,24 @@ var Minimap = /** @class */ (function () {
     Minimap.prototype.doPendingUpdates = function () {
         if (!this.d)
             return;
+        var p = this.d.paramConstructor;
         var tStart = this.verbosity ? Date.now() : 0;
         if (this.pendingCompose)
-            this.d.stores.compose(this.d.updatesParam);
+            this.doCompose();
         var tCompose = this.verbosity ? Date.now() : 0;
-        if (this.pendingLayout) {
-            var pageRect = this.d.updatesParam.page.getBoundingClientRect();
-            if (pageRect.height && pageRect.width) {
-                var scale = this.snapshotsPanel.computeScale(pageRect, this.d.updatesParam);
-                this.snapshotsPanel.show(false);
-                this.d.stores.layoutSnapshots(this.d.updatesParam, pageRect, scale);
-                this.snapshotsPanel.show(true);
-            }
-        }
+        if (this.pendingLayout)
+            this.layout(undefined);
         var tLayout = this.verbosity ? Date.now() : 0;
         var tUpdate = tLayout;
-        var data = this.summaryData;
         if (this.pendingSnapshot) {
-            // we need to preserve the aggregateValues references since they are cached in individual FmmSnapshot
-            var aggregateValues = Object.values(this.d.updatesParam.aggregateValues);
-            aggregateValues.forEach(function (v) { return v.splice(0); });
-            var snapshots = this.d.stores.takeSnapshots();
-            aggregateValues.forEach(function (v) { return v.sort(); });
-            data.status = this.snapshotsPanel.computeStatus();
-            this.status.className = Fmm.STATUS_CLASS[data.status];
-            var errorsSummary_1 = {};
-            if (data.status !== 'Disabled')
-                snapshots.filter(function (s) { return s.error && s.status === data.status; })
-                    .forEach(function (s) { return errorsSummary_1[s.aggregateLabel || s.label] = s.error; });
-            this.summaryData.aggregateValues = Object.keys(errorsSummary_1).sort().map(function (key) { return key + ': ' + errorsSummary_1[key]; });
-            this.detail.refreshDisplay(this.minimapId);
-            this.dragData = JSON.stringify({ snapshots: snapshots, status: data.status, title: data.label });
+            var result = this.doTakeSnapshot();
+            this.frame.setSnapshotResult(result);
             if (this.verbosity)
                 tUpdate = Date.now();
+            this.detail.refreshDisplay(this.minimapId);
             if (!this.onUpdateBeingCalled) {
                 this.onUpdateBeingCalled = true;
-                this.d.onUpdate(snapshots, data.status);
+                this.d.onUpdate(result);
                 this.onUpdateBeingCalled = false;
             }
         }
@@ -683,9 +724,65 @@ var Minimap = /** @class */ (function () {
             var lLayout = this.pendingLayout ? ' Layout(ms)=' + String(tLayout - tCompose) : '';
             var lSnapshot = this.pendingSnapshot ? ' Snapshot(ms)=' + String(tUpdate - tLayout) : '';
             if (lCompose || lLayout || lSnapshot)
-                console.log('FormMinimap[' + data.label + ']' + lCompose + lLayout + lSnapshot);
+                console.log('FormMinimap[' + this.title + ']' + lCompose + lLayout + lSnapshot);
         }
         this.pendingCompose = this.pendingLayout = this.pendingSnapshot = false;
+    };
+    // =============================================================================================================================
+    Minimap.prototype.doCompose = function () {
+        var p = this.d.paramConstructor;
+        var customWidgetIds = this.d.customWidgetIds;
+        var elements = Array.from(this.d.form.elements);
+        if (customWidgetIds.length)
+            elements.push.apply(elements, Array.from(p.page.querySelectorAll('#' + customWidgetIds.join(',#'))));
+        this.d.storeItems.compose(elements, p, this.d.store, this.d.storeListener);
+    };
+    // =============================================================================================================================
+    Minimap.prototype.doTakeSnapshot = function () {
+        // we need to preserve the aggregateValues references since they are cached in individual FmmSnapshot
+        var aggregateValues = Object.values(this.d.paramConstructor.aggregateValues);
+        aggregateValues.forEach(function (v) { return v.splice(0); });
+        var snapshots = this.d.storeItems.takeSnapshots();
+        aggregateValues.forEach(function (v) { return v.sort(); });
+        var status = this.snapshotsPanel.computeStatus();
+        this.status.className = Fmm.STATUS_CLASS[status];
+        // aggregateValues for the minimap summaryStatus is the list of errors in the form fields
+        var errorsSummary = {};
+        if (status !== 'Disabled')
+            snapshots.filter(function (s) { return s.error && s.status === status; }).forEach(function (s) { return errorsSummary[s.aggregateLabel || s.label] = s.error; });
+        this.summaryData.aggregateValues = Object.keys(errorsSummary).sort().map(function (key) { return key + ': ' + errorsSummary[key]; });
+        this.summaryData.status = status;
+        // set the result for drag-and-drop and client onUpdate() callback
+        return { snapshots: snapshots, status: status, title: this.title };
+    };
+    // =============================================================================================================================
+    Minimap.prototype.onFormResize = function () {
+        this.pendingLayout = true;
+        this.d.doUpdates.schedule();
+    };
+    // =============================================================================================================================
+    Minimap.prototype.showPopups = function () {
+        if (this.d)
+            this.d.doUpdates.doNow();
+        if (this.frame.popup)
+            this.frame.popup.show(true);
+        if (this.detailPopup)
+            this.detailPopup.show(false);
+        else
+            this.panel.showDetailPopup();
+    };
+    // =============================================================================================================================
+    Minimap.prototype.snapshotActive = function (data) {
+        if (this.pin.isPinned)
+            return;
+        this.detail.setDisplay(this.minimapId, (this.activeSnapshot = data));
+    };
+    // =============================================================================================================================
+    Minimap.prototype.snapshotHidden = function (e, data) {
+        if (this.activeSnapshot === data)
+            this.activeSnapshot = undefined;
+        this.detail.clear(data);
+        this.pin.trackOff(e, this.frame);
     };
     // =============================================================================================================================
     Minimap.prototype.updateComposition = function () {
@@ -694,12 +791,12 @@ var Minimap = /** @class */ (function () {
     };
     // =============================================================================================================================
     Minimap.prototype.updateLayoutOnScroll = function (ev) {
-        if (ev.target instanceof HTMLElement && this.d.updatesParam.ancestors.has(ev.target)) {
+        if (ev.target instanceof HTMLElement && this.d.clipContextAncestors.has(ev.target)) {
             this.pendingLayout = true;
             this.d.doUpdates.schedule();
         }
     };
-    Minimap.POSITIONS = ['absolute', 'fixed', 'relative', 'sticky'];
+    Minimap.DEFAULT_DEBOUNCEMSEC = 200;
     Minimap.idCounter = 0;
     return Minimap;
 }());
@@ -719,7 +816,7 @@ var Panel = /** @class */ (function () {
             var popupParentStyle = this.popupParent.style;
             popupParentStyle.position = 'relative'; // so popup child can use position:absolute
             if (!detailParent)
-                this.detailPopup = new Popup(this.ef, Fmm.CLASS.DetailPopup, this.detail.e, this.popupParent);
+                this.detailPopup = this.newDetailPopup(this.detail);
             this.div = parent.appendChild(this.ef.createElement('DIV'));
             var divStyle = this.div.style;
             divStyle.height = divStyle.width = '100%';
@@ -749,26 +846,25 @@ var Panel = /** @class */ (function () {
     // =============================================================================================================================
     Panel.prototype.createMinimap = function (p) {
         var err = 'FmmMinimap <' + p.title + '> not created: invalid ';
-        if (p.anchor && !(p.anchor instanceof HTMLElement))
-            throw new Error(err + 'anchor');
-        if (!(p.form instanceof HTMLFormElement))
+        if (!p.form)
             throw new Error(err + 'form');
-        if (p.page && !(p.page instanceof HTMLElement))
-            throw new Error(err + 'page');
         return new Minimap(p, this);
     };
     // =============================================================================================================================
     Panel.prototype.destroyDetached = function () {
-        this.minimaps.filter(function (m) { return m.isDetached(); }).forEach(function (m) { return m.destructor(); });
+        this.minimaps.filter(function (m) { return m.isDetached; }).forEach(function (m) { return m.destructor(); });
     };
     // =============================================================================================================================
     Panel.prototype.hideDetailPopup = function () {
-        if (this.detailPopup && !this.minimaps.find(function (m) { return m.isPinnedToPanelDetail(); }))
+        if (this.detailPopup && !this.minimaps.find(function (m) { return m.isPinnedToPanelDetail; }))
             this.detailPopup.hide();
     };
     // =============================================================================================================================
-    Panel.prototype.remove = function (minimap, frame) {
-        frame.parentElement.removeChild(frame);
+    Panel.prototype.newDetailPopup = function (detail) {
+        return new Popup(this.ef, Fmm.CLASS.DetailPopup, detail.e, this.popupParent);
+    };
+    // =============================================================================================================================
+    Panel.prototype.remove = function (minimap) {
         var index = this.minimaps.findIndex(function (m) { return m === minimap; });
         if (index >= 0)
             this.minimaps.splice(index, 1);
@@ -833,9 +929,34 @@ var Popup = /** @class */ (function () {
         this.div.style.display = 'none';
     };
     // =============================================================================================================================
+    Popup.prototype.setZoomable = function (minimap, trigger, zoomFactor) {
+        var _this = this;
+        var isZoomed = false;
+        var unzoomedHeight = 0;
+        var unzoomedWidth = 0;
+        trigger.style.cursor = 'zoom-in';
+        trigger.onclick = function (ev) {
+            if (ev.button !== 0)
+                return;
+            ev.stopPropagation();
+            if (!unzoomedHeight) {
+                var rect = _this.div.getBoundingClientRect();
+                unzoomedHeight = rect.height;
+                unzoomedWidth = rect.width;
+            }
+            if (minimap.useWidthToScale)
+                _this.div.style.width = (isZoomed ? unzoomedWidth : unzoomedWidth * zoomFactor) + 'px';
+            else
+                _this.div.style.height = (isZoomed ? unzoomedHeight : unzoomedHeight * zoomFactor) + 'px';
+            minimap.layout(ev);
+            isZoomed = !isZoomed;
+            trigger.style.cursor = isZoomed ? 'zoom-out' : 'zoom-in';
+        };
+    };
+    // =============================================================================================================================
     Popup.prototype.show = function (anchoredAtParentCenter) {
-        var vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-        var vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+        var viewportHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+        var viewportWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
         var style = this.div.style;
         if (style.display !== 'none')
             return;
@@ -849,16 +970,16 @@ var Popup = /** @class */ (function () {
             style.left = anchoredAtParentCenter ? '50%' : '105%';
             style.right = 'auto';
             var rectL = this.div.getBoundingClientRect();
-            if (vw - rectL.left - rectL.width < rect.left) {
+            if (viewportWidth - rectL.left - rectL.width < rect.left) {
                 style.left = 'auto';
                 style.right = anchoredAtParentCenter ? '50%' : '105%';
             }
         }
-        if (rect.bottom > vh) {
+        if (rect.bottom > viewportHeight) {
             style.bottom = anchoredAtParentCenter ? '50%' : '0';
             style.top = 'auto';
             var rectB = this.div.getBoundingClientRect();
-            if (rectB.top + rectB.height - vh > rect.bottom) {
+            if (rectB.top + rectB.height - viewportHeight > rect.bottom) {
                 style.bottom = 'auto';
                 style.top = anchoredAtParentCenter ? '50%' : '0';
             }
@@ -926,7 +1047,7 @@ var PushPin = /** @class */ (function () {
         parent.onclick = parent.onmousemove = undefined;
         parent.style.cursor = this.parentCursor;
         if (frame)
-            frame.appendChild(this.svg);
+            frame.div.appendChild(this.svg);
         else
             parent.removeChild(this.svg);
     };
@@ -936,9 +1057,11 @@ var PushPin = /** @class */ (function () {
         var parent = this.svg.parentNode;
         var rect = parent.getBoundingClientRect();
         parent.appendChild(this.svg);
-        this.parentCursor = parent.style.cursor || 'default';
+        this.parentCursor = parent.style.cursor;
         this.svg.style.zIndex = String(+parent.style.zIndex + 1);
         parent.onclick = function (ev) {
+            if (ev.button !== 0)
+                return;
             if (_this.pinned) {
                 _this.pinned = false;
                 parent.style.cursor = 'none';
@@ -981,22 +1104,22 @@ var Snapshot = /** @class */ (function () {
     function Snapshot(name, p) {
         var _this = this;
         var aggregateLabel = p.aggregateLabels[name];
-        var panel = p.snapshotsPanel;
-        var upcall = p.snapshotUpcall;
         if (aggregateLabel && !(name in p.aggregateValues))
             p.aggregateValues[name] = [];
         this.data = __assign(__assign({}, Snapshot.NULLDATA), { aggregateLabel: aggregateLabel, aggregateValues: p.aggregateValues[name], name: name });
+        this.upcall = p.snapshotUpcall;
         this.div = p.ef.createElement('DIV');
         this.div.style.position = 'absolute';
         this.div.onmouseover = function (ev) {
             ev.stopPropagation();
-            upcall.showDetail(_this.data);
+            _this.upcall.showDetail(_this.data);
         };
-        panel.addSnapshot(this, this.div);
+        p.snapshotsPanel.addSnapshot(this, this.div);
         this.destructor = function () {
             _this.div.onmouseover = undefined;
-            panel.removeSnapshot(_this, _this.div);
-            upcall.snapshotHidden(_this.div, _this.data);
+            _this.upcall.hideDetail(_this.div, _this.data);
+            p.snapshotsPanel.removeSnapshot(_this, _this.div);
+            _this.destructor = G.NOP;
         };
     }
     // =============================================================================================================================
@@ -1016,7 +1139,7 @@ var Snapshot = /** @class */ (function () {
         return true;
     };
     // =============================================================================================================================
-    Snapshot.prototype.setRect = function (rect, upcall) {
+    Snapshot.prototype.setRect = function (rect) {
         if (this.rect &&
             rect &&
             this.rect.left === rect.left &&
@@ -1027,7 +1150,7 @@ var Snapshot = /** @class */ (function () {
         this.rect = rect;
         var style = this.div.style;
         if (!rect) {
-            upcall.snapshotHidden(this.div, this.data);
+            this.upcall.hideDetail(this.div, this.data);
             return (style.display = 'none');
         }
         style.left = String(rect.left) + 'px';
@@ -1074,14 +1197,13 @@ var SnapshotsPanel = /** @class */ (function () {
         this.div.appendChild(snapshotDiv);
     };
     // =============================================================================================================================
-    SnapshotsPanel.prototype.computeScale = function (pageRect, p) {
-        var _a;
-        var _b = ((_a = p.popup) === null || _a === void 0 ? void 0 : _a.getElementSize(this.div)) || this.getSize(), height = _b[0], width = _b[1];
+    SnapshotsPanel.prototype.computeScale = function (pageRect, frame, useWidthToScale) {
+        var _a = frame.popup ? frame.popup.getElementSize(this.div) : this.getSize(), height = _a[0], width = _a[1];
         var hscale = height / pageRect.height;
         var wscale = width / pageRect.width;
         var pstyle = this.div.parentElement.style;
         var style = this.div.style;
-        if (p.useWidthToScale) {
+        if (useWidthToScale) {
             var heightpx = String(Math.round(pageRect.height * wscale)) + 'px';
             pstyle.width = style.width = String(width) + 'px';
             style.height = heightpx; // may be vetoed by CSS

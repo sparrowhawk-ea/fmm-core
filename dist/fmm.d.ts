@@ -23,7 +23,7 @@ export interface FmmMinimap {
 }
 export interface FmmMinimapCreateParam {
     aggregateLabels?: FmmMapString;
-    anchor?: HTMLElement;
+    anchor?: HTMLDivElement;
     debounceMsec?: number;
     dynamicLabels?: string[];
     form: HTMLFormElement;
@@ -36,9 +36,9 @@ export interface FmmMinimapCreateParam {
     useWidthToScale?: boolean;
     verbosity?: number;
     widgetFactories?: FmmWidgetFactory[];
-    zoomMaxPercent?: number;
+    zoomFactor?: number;
 }
-export declare type FmmOnUpdate = (snapshots: FmmSnapshot[], status: FmmStatus) => void;
+export declare type FmmOnUpdate = (snapshots: FmmSnapshots) => void;
 export interface FmmPanel {
     createMinimap(p: Readonly<FmmMinimapCreateParam>): FmmMinimap;
     destroyDetached(): void;
@@ -53,6 +53,11 @@ export interface FmmSnapshot {
     placeholder: string;
     status: FmmStatus;
     value: string;
+}
+export interface FmmSnapshots {
+    snapshots: FmmSnapshot[];
+    status: FmmStatus;
+    title: string;
 }
 export declare type FmmStatus = 'Disabled' | 'Invalid' | 'Optional' | 'Required' | 'Valid';
 export interface FmmStore {

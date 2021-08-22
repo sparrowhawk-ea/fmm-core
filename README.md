@@ -13,6 +13,14 @@ The ability to see off-screen form element values can be useful for context, as 
 The minimap can be set permanently visible in a panel DIV or popped up on mouse enter in a per-minimap DIV.
 The details for each form element can be shown in a permanently visible shared DIV or in a popup per minimap.
 
+The minimap reflects the aspect ratio of the form.
+The height (or width if [useWidthToScale](#mcp-usewidthtoscale) is true) is sized to fit the dimension of the parent [panel](#fmmpanel).
+For anchored minimaps, the appropriate constraint is set on the CSS selector 'fmm-popup'.
+
+Anchored minimaps may be toggle zoomed by [zoomFactor](#mcp-zoomfactor) by clicking on the title bar.
+A popup minimap will hide itself when the mouse leaves the popup unless pinned down with the pushpin.
+Hint:  when zooming back in, it may be advisable to pin the pushpin first since the mouse pointer may end up outside the popup upon resize and the popup may therefore hide itself.
+
 When a form is destroyed, its corresponding minimap should be detached or destroyed.
 The [Angular](https://www.npmjs.com/package/@eafmm/ng), [React](https://www.npmjs.com/package/@eafmm/react), and [Vue](https://www.npmjs.com/package/@eafmm/vue) components supplied with this library will detach the minimap when the component is destroyed.  This will happen when the component tag is placed inside the form.
 
@@ -141,7 +149,7 @@ Property | Type | Default | Description
 <a name='mcp-usewidthtoscale'></a>useWidthToScale | boolean | false | Use width rather than height to size the minimap, maintaining aspect ratio of the form (or **page** if specified).
 <a name='mcp-verbosity'></a>verbosity | number | 0 | Set to 1 to see processing times in console.
 <a name='mcp-widgetfactories'></a>widgetFactories | [FmmWidgetFactory](#fmmwidgetfactory)[] | | 
-<a name='mcp-zoommaxpercent'></a>zoomMaxPercent | number | 100 | Maximum percent zoom of anchored minimap (capped at 500).
+<a name='mcp-zoomfactor'></a>zoomFactor | number | | Zoom factor of anchored minimap (capped at 5.0 times).
 
 ## FmmOnUpdate
 

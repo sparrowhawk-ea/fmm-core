@@ -46,7 +46,7 @@ export interface FmmMinimap {
 // =================================================================================================================================
 export interface FmmMinimapCreateParam {
 	aggregateLabels?: FmmMapString;
-	anchor?: HTMLElement;
+	anchor?: HTMLDivElement;
 	debounceMsec?: number;
 	dynamicLabels?: string[];
 	form: HTMLFormElement;
@@ -59,13 +59,13 @@ export interface FmmMinimapCreateParam {
 	useWidthToScale?: boolean;
 	verbosity?: number;
 	widgetFactories?: FmmWidgetFactory[];
-	zoomMaxPercent?: number;
+	zoomFactor?: number;
 }
 
 // =================================================================================================================================
 //						F M M O N U P D A T E
 // =================================================================================================================================
-export type FmmOnUpdate = (snapshots: FmmSnapshot[], status: FmmStatus) => void;
+export type FmmOnUpdate = (snapshots: FmmSnapshots) => void;
 
 // =================================================================================================================================
 //						F M M P A N E L
@@ -88,6 +88,15 @@ export interface FmmSnapshot {
 	placeholder: string;
 	status: FmmStatus;
 	value: string;
+}
+
+// =================================================================================================================================
+//						F M M S N A P S H O T S
+// =================================================================================================================================
+export interface FmmSnapshots {
+	snapshots: FmmSnapshot[],
+	status: FmmStatus,
+	title: string
 }
 
 // =================================================================================================================================
