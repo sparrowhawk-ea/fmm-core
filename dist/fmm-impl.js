@@ -1,4 +1,5 @@
-import { __assign, __extends } from "tslib";
+import { __assign } from "tslib";
+import { FmmStoreHTML } from './fmm-html';
 // =================================================================================================================================
 //						F M M
 // =================================================================================================================================
@@ -67,23 +68,21 @@ export { Fmm };
 // =================================================================================================================================
 var ClipContext = /** @class */ (function () {
     // =============================================================================================================================
-    function ClipContext(e, parent) {
+    function ClipContext(form, e, parent) {
         this.parent = parent;
-        var _a = e.style, overflow = _a.overflow, overflowX = _a.overflowX, overflowY = _a.overflowY;
-        this.clipX = ClipContext.CLIP.includes(overflow) || ClipContext.CLIP.includes(overflowX);
-        this.clipY = ClipContext.CLIP.includes(overflow) || ClipContext.CLIP.includes(overflowY);
-        this.rect = (parent === null || parent === void 0 ? void 0 : parent.clipRect(e.getBoundingClientRect())) || e.getBoundingClientRect();
+        this.clip = (parent === null || parent === void 0 ? void 0 : parent.clipRect(form.getRect(e))) || form.getRect(e);
+        this.clipX = form.clipsContentX(e);
+        this.clipY = form.clipsContentY(e);
     }
     // =============================================================================================================================
     ClipContext.prototype.clipRect = function (rect) {
-        var left = Math.max(rect.left, this.rect.left);
-        var top = Math.max(rect.top, this.rect.top);
-        var width = Math.max(0, (this.clipX ? Math.min(rect.right, this.rect.right) : rect.right) - left);
-        var height = Math.max(0, (this.clipY ? Math.min(rect.bottom, this.rect.bottom) : rect.bottom) - top);
-        var clipped = new DOMRectReadOnly(left, top, width, height);
+        var left = Math.max(rect.left, this.clip.left);
+        var top = Math.max(rect.top, this.clip.top);
+        var width = Math.max(0, (this.clipX ? Math.min(rect.right, this.clip.right) : rect.right) - left);
+        var height = Math.max(0, (this.clipY ? Math.min(rect.bottom, this.clip.bottom) : rect.bottom) - top);
+        var clipped = { left: left, top: top, width: width, height: height, right: left + width, bottom: top + height };
         return width && height && this.parent ? this.parent.clipRect(clipped) : clipped;
     };
-    ClipContext.CLIP = ['auto', 'hidden', 'scroll'];
     return ClipContext;
 }());
 // =================================================================================================================================
@@ -208,18 +207,13 @@ var Detail = /** @class */ (function () {
 var FormStoreItem = /** @class */ (function () {
     // =============================================================================================================================
     function FormStoreItem(name, e, storeItem, p) {
-        var _a, _b, _c, _d;
+        var _a;
         this.e = e;
         this.storeItem = storeItem;
-        var label = e.id ? p.page.querySelector('label[for=' + e.id + ']') : undefined;
-        if (!label && ((_a = e.parentElement) === null || _a === void 0 ? void 0 : _a.tagName) === 'LABEL')
-            label = e.parentElement;
-        if (!label && ((_b = e.previousElementSibling) === null || _b === void 0 ? void 0 : _b.tagName) === 'LABEL')
-            label = e.previousElementSibling;
-        var widget;
-        this.widget = ((_c = p.widgetFactories) === null || _c === void 0 ? void 0 : _c.find(function (f) { return (widget = f.createWidget(name, e)); })) ? widget : FormStoreItem.DEFAULT_WIDGET;
+        var label = p.form.getLabelFor(e);
         this.dynamicLabel = p.dynamicLabels.includes(name);
-        this.framework = ((_d = p.framework) === null || _d === void 0 ? void 0 : _d.createFrameworkItem(name, e)) || FormStoreItem.DEFAULT_FRAMEWORK;
+        this.form = p.form;
+        this.framework = ((_a = p.framework) === null || _a === void 0 ? void 0 : _a.createFrameworkItem(name, e)) || FormStoreItem.DEFAULT_FRAMEWORK;
         this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label);
         this.label = label || this.framework.getLabel(name, this.envelope);
         this.snapshot = new Snapshot(name, p);
@@ -228,13 +222,12 @@ var FormStoreItem = /** @class */ (function () {
     FormStoreItem.prototype.destructor = function () {
         this.framework.destructor();
         this.storeItem.destructor();
-        this.widget.destructor();
     };
     // =============================================================================================================================
     FormStoreItem.prototype.layoutSnapshot = function (ancestors, pageRect, scale) {
-        var parent = this.envelope.parentElement;
+        var parent = this.form.getParent(this.envelope);
         var clipContext = ancestors.get(parent) || this.getClipContext(parent, ancestors);
-        var rect = clipContext.clipRect(this.envelope.getBoundingClientRect());
+        var rect = clipContext.clipRect(this.form.getRect(this.envelope));
         if (!rect.width || !rect.height)
             return this.snapshot.setRect(undefined);
         var left = Math.floor((rect.left - pageRect.left) * scale);
@@ -245,34 +238,32 @@ var FormStoreItem = /** @class */ (function () {
     };
     // =============================================================================================================================
     FormStoreItem.prototype.removeIfDetached = function () {
-        if (this.envelope.parentElement && this.envelope.contains(this.e))
+        if (this.form.getParent(this.envelope) && this.form.contains(this.envelope, this.e))
             return false;
         this.snapshot.destructor();
         this.destructor();
         return true;
     };
     // =============================================================================================================================
-    FormStoreItem.prototype.takeSnapshot = function () {
-        var _a, _b;
+    FormStoreItem.prototype.takeSnapshot = function (form, store) {
         var data = this.snapshot.data;
         var name = data.name;
         if (data.label === undefined || this.dynamicLabel) {
-            var label = ((_a = this.label) === null || _a === void 0 ? void 0 : _a.getAttribute('aria-label')) || ((_b = this.label) === null || _b === void 0 ? void 0 : _b.textContent) || this.e.getAttribute('aria-label');
-            data.label = Fmm.trim(label || this.e.id || name);
-            data.placeholder = Fmm.trim(this.e.getAttribute('placeholder'));
+            data.label = Fmm.trim(form.getDisplayLabel(name, this.e, this.label));
+            data.placeholder = Fmm.trim(this.form.getPlaceholder(this.e));
         }
         var displayValue = Fmm.trim(this.framework.getValue(name, this.e, this.envelope, data.label));
         if (!displayValue) {
-            var rawValue = this.storeItem.getValue();
+            var rawValue = store.getValue(form, this.storeItem);
             if (rawValue)
-                displayValue = Fmm.trim(this.widget.getDisplayValue(name, this.e, data.label, rawValue));
+                displayValue = Fmm.trim(form.getDisplayValue(name, this.e, data.label, rawValue));
         }
         data.value = displayValue;
         var hasValue = !!displayValue;
         if (hasValue && data.aggregateValues)
             data.aggregateValues.push(displayValue);
-        data.error = Fmm.trim(this.framework.getError(name, this.e, this.envelope, hasValue) || this.storeItem.getError(hasValue));
-        if (this.storeItem.isDisabled()) {
+        data.error = Fmm.trim(this.framework.getError(name, this.e, this.envelope, hasValue) || store.getError(form, this.storeItem, hasValue));
+        if (store.isDisabled(form, this.storeItem)) {
             this.snapshot.setStatus('Disabled');
         }
         else if (hasValue) {
@@ -285,9 +276,9 @@ var FormStoreItem = /** @class */ (function () {
     };
     // =============================================================================================================================
     FormStoreItem.prototype.getClipContext = function (e, ancestors) {
-        var parent = e.parentElement;
+        var parent = this.form.getParent(e);
         var parentContext = parent ? ancestors.get(parent) || this.getClipContext(parent, ancestors) : undefined;
-        var clipContext = new ClipContext(e, parentContext);
+        var clipContext = new ClipContext(this.form, e, parentContext);
         ancestors.set(e, clipContext);
         return clipContext;
     };
@@ -295,9 +286,9 @@ var FormStoreItem = /** @class */ (function () {
     FormStoreItem.prototype.getCommonAncestor = function (e, label) {
         if (!label)
             return e;
-        var parent = e.parentElement;
-        while (parent && !parent.contains(label))
-            parent = parent.parentElement;
+        var parent = this.form.getParent(e);
+        while (parent && !this.form.contains(parent, label))
+            parent = this.form.getParent(parent);
         return parent || e;
     };
     FormStoreItem.DEFAULT_FRAMEWORK = {
@@ -306,29 +297,6 @@ var FormStoreItem = /** @class */ (function () {
         getError: function (_, _e, _n, _v) { return undefined; },
         getLabel: function (_, _e) { return undefined; },
         getValue: function (_, _e, _n, _l) { return undefined; }
-    };
-    FormStoreItem.DEFAULT_WIDGET = {
-        destructor: function () { return undefined; },
-        getDisplayValue: function (_, e, label, value) {
-            var tag = e.tagName;
-            if (tag === 'INPUT') {
-                var ie = e;
-                if (ie.type === 'checkbox' || ie.type === 'radio')
-                    return ie.checked ? label : undefined;
-                return ie.type === 'password' ? '*****' : String(value);
-            }
-            if (tag === 'SELECT') {
-                var values_1 = Array.isArray(value) ? value : [value];
-                if (!values_1.length)
-                    return String(value);
-                var options_1 = e.options;
-                if (typeof values_1[0] === 'number')
-                    return values_1.map(function (i) { return options_1[i].text; }).join('\n');
-                var sel = Array.from(options_1).filter(function (o) { return values_1.includes(o.value); });
-                return sel.map(function (o) { return o.text; }).join('\n');
-            }
-            return String(value);
-        }
     };
     return FormStoreItem;
 }());
@@ -347,8 +315,9 @@ var FormStoreItems = /** @class */ (function () {
         this.list.splice(0).forEach(function (fw) { return fw.destructor(); });
     };
     // =============================================================================================================================
-    FormStoreItems.prototype.compose = function (elements, p, store, storeListener) {
+    FormStoreItems.prototype.compose = function (p) {
         var _this = this;
+        var elements = p.form.getElements(p.customElementIds);
         var prev = this.list.splice(0);
         prev.forEach(function (fw) { return fw.removeIfDetached() || _this.list.push(fw); });
         var processed = new WeakSet();
@@ -356,11 +325,11 @@ var FormStoreItems = /** @class */ (function () {
         elements.forEach(function (e) {
             if (processed.has(e) || _this.ignore.has(e))
                 return undefined;
-            if (e.hidden)
+            if (p.form.isHidden(e))
                 return _this.ignore.add(e);
-            var storeItem = store.createStoreItem(e, function () { return StoreItem.NEW(e, storeListener); });
+            var storeItem = p.store.createStoreItem(p.form, e);
             if (storeItem) {
-                var name_1 = storeItem.getName() || FormStoreItems.NAMEPREFIX + String(_this.nameCounter++);
+                var name_1 = p.store.getName(p.form, storeItem) || FormStoreItems.NAMEPREFIX + String(_this.nameCounter++);
                 _this.list.push(new FormStoreItem(name_1, e, storeItem, p));
             }
             processed.add(e);
@@ -371,8 +340,8 @@ var FormStoreItems = /** @class */ (function () {
         this.list.forEach(function (fw) { return fw.layoutSnapshot(ancestors, pageRect, scale); });
     };
     // =============================================================================================================================
-    FormStoreItems.prototype.takeSnapshots = function () {
-        return this.list.map(function (fw) { return fw.takeSnapshot(); });
+    FormStoreItems.prototype.takeSnapshots = function (form, store) {
+        return this.list.map(function (fw) { return fw.takeSnapshot(form, store); });
     };
     FormStoreItems.NAMEPREFIX = '$FmmFSI';
     return FormStoreItems;
@@ -382,35 +351,30 @@ var FormStoreItems = /** @class */ (function () {
 // =================================================================================================================================
 var Frame = /** @class */ (function () {
     // =============================================================================================================================
-    function Frame(minimap, panel, anchor, status, zoomFactor) {
+    function Frame(ef, anchor, status, minimapTitle) {
         this.dragData = '';
-        var ef = panel.ef;
         var div = (this.div = ef.createElement('DIV'));
         div.className = Fmm.CLASS.MinimapFrame;
         div.draggable = true;
         div.ondragstart = this.onDragStart.bind(this);
         div.style.cursor = 'grab';
         div.style.position = 'relative';
-        var header = div.appendChild(ef.createElement('DIV'));
+        var header = (this.header = div.appendChild(ef.createElement('DIV')));
         header.className = Fmm.CLASS.Header;
         header.style.overflow = 'hidden';
         header.style.whiteSpace = 'nowrap';
-        header.onmouseenter = minimap.onHeaderEnter.bind(minimap);
         var title = G.ELLIPSIS(ef.createElement('LABEL'));
         title.className = Fmm.CLASS.Title;
         title.style.cursor = 'inherit';
-        title.textContent = title.title = minimap.title;
+        title.textContent = title.title = minimapTitle;
         var statusStyle = status.style;
         if (anchor) {
-            panel.add(minimap, undefined);
             statusStyle.position = 'absolute';
             statusStyle.top = statusStyle.bottom = statusStyle.left = statusStyle.right = '0';
             if (!Frame.POSITIONS.includes(anchor.style.position))
                 anchor.style.position = 'relative';
             anchor.appendChild(status);
             this.popup = new Popup(ef, Fmm.CLASS.MinimapPopup, this.div, status);
-            if (zoomFactor)
-                this.popup.setZoomable(minimap, header, Math.min(Frame.MAX_ZOOMFACTOR, Math.max(0.0, zoomFactor)));
             var prev = status.previousElementSibling;
             while (prev && !prev.className.includes('fmm-'))
                 prev = prev.previousElementSibling;
@@ -419,7 +383,6 @@ var Frame = /** @class */ (function () {
             this.setDestroyOnDetachFromDOM(anchor, status);
         }
         else {
-            panel.add(minimap, div);
             header.appendChild(status);
             statusStyle.display = 'inline-block';
             statusStyle.margin = '1px 2px 0 1px';
@@ -427,8 +390,6 @@ var Frame = /** @class */ (function () {
             statusStyle.width = '0.8em';
         }
         header.appendChild(title);
-        div.onmouseenter = minimap.onFrameEnter.bind(minimap);
-        div.onmouseleave = minimap.onFrameLeave.bind(minimap);
     }
     // =============================================================================================================================
     Frame.prototype.destructor = function () {
@@ -474,7 +435,6 @@ var Frame = /** @class */ (function () {
         }).observe(anchor, { childList: true });
     };
     Frame.POSITIONS = ['absolute', 'fixed', 'relative', 'sticky'];
-    Frame.MAX_ZOOMFACTOR = 5.0;
     return Frame;
 }());
 // =================================================================================================================================
@@ -507,7 +467,13 @@ var Minimap = /** @class */ (function () {
         this.status = ef.createElement('DIV');
         this.summaryData = __assign(__assign({}, Snapshot.NULLDATA), { label: p.title });
         this.title = p.title;
-        var frame = (this.frame = new Frame(this, panel, p.anchor, this.status, p.zoomFactor));
+        var frame = (this.frame = new Frame(ef, p.anchor, this.status, this.title));
+        panel.add(this, this.anchored ? undefined : frame.div);
+        frame.div.onmouseenter = this.onFrameEnter.bind(this);
+        frame.div.onmouseleave = this.onFrameLeave.bind(this);
+        if (this.anchored && p.zoomFactor)
+            frame.popup.setZoomable(this, frame.header, Math.min(Minimap.MAX_ZOOMFACTOR, Math.max(0.0, p.zoomFactor)));
+        frame.header.onmouseenter = this.onHeaderEnter.bind(this);
         this.snapshotsPanel = new SnapshotsPanel(ef, frame.div);
         this.pin = new PushPin(ef, frame.div);
         this.minimapId = Minimap.idCounter++;
@@ -516,38 +482,31 @@ var Minimap = /** @class */ (function () {
         this.detail = p.usePanelDetail ? panel.detail : new Detail(ef, undefined);
         this.d = {
             clipContextAncestors: new WeakMap(),
-            customWidgetIds: [],
             doUpdates: new Debouncer(function () { return _this.doPendingUpdates(); }, p.debounceMsec || Minimap.DEFAULT_DEBOUNCEMSEC),
-            form: p.form,
             // eslint-disable-next-line @typescript-eslint/unbound-method
             onUpdate: p.onUpdate || Minimap.ONUPDATE,
-            paramConstructor: {
+            paramUpdates: {
                 aggregateLabels: p.aggregateLabels || {},
                 aggregateValues: {},
+                customElementIds: [],
                 dynamicLabels: p.dynamicLabels || [],
-                ef: ef,
+                ef: panel.ef,
+                form: p.form,
                 framework: p.framework,
-                page: p.page || p.form,
                 snapshotUpcall: {
                     hideDetail: this.snapshotHidden.bind(this),
                     showDetail: this.snapshotActive.bind(this)
                 },
                 snapshotsPanel: this.snapshotsPanel,
-                widgetFactories: p.widgetFactories
+                store: p.store || new FmmStoreHTML()
             },
-            resizeObserver: new ResizeObserver(this.onFormResize.bind(this)),
-            store: p.store || this,
-            storeItems: new FormStoreItems(),
-            storeListener: this.takeSnapshot.bind(this)
+            storeItems: new FormStoreItems()
         };
         if (!p.usePanelDetail)
             this.detailPopup = this.anchored ? frame.newDetailPopup(ef, this.detail) : panel.newDetailPopup(this.detail);
         this.status.onmouseover = this.onStatusEnter.bind(this);
-        this.updateLayoutOnScroll = this.updateLayoutOnScroll.bind(this);
-        this.d.resizeObserver.observe(p.form);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        this.d.paramConstructor.page.addEventListener('scroll', this.updateLayoutOnScroll, true);
-        this.d.store.notifyMinimap(this, true);
+        this.d.paramUpdates.store.notifyMinimapOnUpdate(this, true);
+        this.d.paramUpdates.form.setReflowHandler(this.onFormReflow.bind(this));
     }
     // =============================================================================================================================
     Minimap.ONUPDATE = function (_) {
@@ -577,15 +536,12 @@ var Minimap = /** @class */ (function () {
         this.status = undefined;
     };
     // =============================================================================================================================
-    Minimap.prototype.compose = function (customWidgetIds) {
+    Minimap.prototype.compose = function (customElementIds) {
         if (!this.d)
             return;
-        this.d.customWidgetIds = customWidgetIds || [];
-        this.updateComposition();
-    };
-    // =============================================================================================================================
-    Minimap.prototype.createStoreItem = function (_, createDefaultStoreItem) {
-        return createDefaultStoreItem();
+        this.d.paramUpdates.customElementIds = customElementIds || [];
+        this.pendingCompose = this.pendingLayout = true;
+        this.takeSnapshot();
     };
     Object.defineProperty(Minimap.prototype, "isDetached", {
         // =============================================================================================================================
@@ -616,23 +572,21 @@ var Minimap = /** @class */ (function () {
         if (!this.d)
             return;
         this.d.doUpdates.destructor();
-        this.d.resizeObserver.disconnect();
         this.pendingCompose = this.pendingLayout = false;
         this.pendingSnapshot = true;
         this.doPendingUpdates();
         this.frame.detach();
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        this.d.paramConstructor.page.removeEventListener('scroll', this.updateLayoutOnScroll, true);
-        this.d.store.notifyMinimap(this, false);
+        this.d.paramUpdates.form.clearReflowHandler();
+        this.d.paramUpdates.store.notifyMinimapOnUpdate(this, false);
         this.d.storeItems.destructor();
         this.d = undefined;
     };
     // =============================================================================================================================
     Minimap.prototype.layout = function (zoomEvent) {
         var tStart = zoomEvent && this.verbosity ? Date.now() : 0;
-        this.d.clipContextAncestors = new WeakMap();
-        var pageRect = this.d.paramConstructor.page.getBoundingClientRect();
+        var pageRect = this.d.paramUpdates.form.getRect();
         if (pageRect.height && pageRect.width) {
+            this.d.clipContextAncestors = new WeakMap();
             var scale = this.snapshotsPanel.computeScale(pageRect, this.frame, this.useWidthToScale);
             this.snapshotsPanel.show(false);
             this.d.storeItems.layoutSnapshots(this.d.clipContextAncestors, pageRect, scale);
@@ -695,13 +649,31 @@ var Minimap = /** @class */ (function () {
         return true;
     };
     // =============================================================================================================================
+    Minimap.prototype.doTakeSnapshot = function () {
+        var p = this.d.paramUpdates;
+        // we need to preserve the aggregateValues references since they are cached in individual FmmSnapshot
+        var aggregateValues = Object.values(p.aggregateValues);
+        aggregateValues.forEach(function (v) { return v.splice(0); });
+        var snapshots = this.d.storeItems.takeSnapshots(p.form, p.store);
+        aggregateValues.forEach(function (v) { return v.sort(); });
+        var status = this.snapshotsPanel.computeStatus();
+        this.status.className = Fmm.STATUS_CLASS[status];
+        // aggregateValues for the minimap summaryStatus is the list of errors in the form fields
+        var errorsSummary = {};
+        if (status !== 'Disabled')
+            snapshots.filter(function (s) { return s.error && s.status === status; }).forEach(function (s) { return errorsSummary[s.aggregateLabel || s.label] = s.error; });
+        this.summaryData.aggregateValues = Object.keys(errorsSummary).sort().map(function (key) { return key + ': ' + errorsSummary[key]; });
+        this.summaryData.status = status;
+        // set the result for drag-and-drop and client onUpdate() callback
+        return { snapshots: snapshots, status: status, title: this.title };
+    };
+    // =============================================================================================================================
     Minimap.prototype.doPendingUpdates = function () {
         if (!this.d)
             return;
-        var p = this.d.paramConstructor;
         var tStart = this.verbosity ? Date.now() : 0;
         if (this.pendingCompose)
-            this.doCompose();
+            this.d.storeItems.compose(this.d.paramUpdates);
         var tCompose = this.verbosity ? Date.now() : 0;
         if (this.pendingLayout)
             this.layout(undefined);
@@ -729,34 +701,7 @@ var Minimap = /** @class */ (function () {
         this.pendingCompose = this.pendingLayout = this.pendingSnapshot = false;
     };
     // =============================================================================================================================
-    Minimap.prototype.doCompose = function () {
-        var p = this.d.paramConstructor;
-        var customWidgetIds = this.d.customWidgetIds;
-        var elements = Array.from(this.d.form.elements);
-        if (customWidgetIds.length)
-            elements.push.apply(elements, Array.from(p.page.querySelectorAll('#' + customWidgetIds.join(',#'))));
-        this.d.storeItems.compose(elements, p, this.d.store, this.d.storeListener);
-    };
-    // =============================================================================================================================
-    Minimap.prototype.doTakeSnapshot = function () {
-        // we need to preserve the aggregateValues references since they are cached in individual FmmSnapshot
-        var aggregateValues = Object.values(this.d.paramConstructor.aggregateValues);
-        aggregateValues.forEach(function (v) { return v.splice(0); });
-        var snapshots = this.d.storeItems.takeSnapshots();
-        aggregateValues.forEach(function (v) { return v.sort(); });
-        var status = this.snapshotsPanel.computeStatus();
-        this.status.className = Fmm.STATUS_CLASS[status];
-        // aggregateValues for the minimap summaryStatus is the list of errors in the form fields
-        var errorsSummary = {};
-        if (status !== 'Disabled')
-            snapshots.filter(function (s) { return s.error && s.status === status; }).forEach(function (s) { return errorsSummary[s.aggregateLabel || s.label] = s.error; });
-        this.summaryData.aggregateValues = Object.keys(errorsSummary).sort().map(function (key) { return key + ': ' + errorsSummary[key]; });
-        this.summaryData.status = status;
-        // set the result for drag-and-drop and client onUpdate() callback
-        return { snapshots: snapshots, status: status, title: this.title };
-    };
-    // =============================================================================================================================
-    Minimap.prototype.onFormResize = function () {
+    Minimap.prototype.onFormReflow = function () {
         this.pendingLayout = true;
         this.d.doUpdates.schedule();
     };
@@ -784,19 +729,8 @@ var Minimap = /** @class */ (function () {
         this.detail.clear(data);
         this.pin.trackOff(e, this.frame);
     };
-    // =============================================================================================================================
-    Minimap.prototype.updateComposition = function () {
-        this.pendingCompose = this.pendingLayout = true;
-        this.takeSnapshot();
-    };
-    // =============================================================================================================================
-    Minimap.prototype.updateLayoutOnScroll = function (ev) {
-        if (ev.target instanceof HTMLElement && this.d.clipContextAncestors.has(ev.target)) {
-            this.pendingLayout = true;
-            this.d.doUpdates.schedule();
-        }
-    };
     Minimap.DEFAULT_DEBOUNCEMSEC = 200;
+    Minimap.MAX_ZOOMFACTOR = 5.0;
     Minimap.idCounter = 0;
     return Minimap;
 }());
@@ -945,9 +879,9 @@ var Popup = /** @class */ (function () {
                 unzoomedWidth = rect.width;
             }
             if (minimap.useWidthToScale)
-                _this.div.style.width = (isZoomed ? unzoomedWidth : unzoomedWidth * zoomFactor) + 'px';
+                _this.div.style.width = String(isZoomed ? unzoomedWidth : unzoomedWidth * zoomFactor) + 'px';
             else
-                _this.div.style.height = (isZoomed ? unzoomedHeight : unzoomedHeight * zoomFactor) + 'px';
+                _this.div.style.height = String(isZoomed ? unzoomedHeight : unzoomedHeight * zoomFactor) + 'px';
             minimap.layout(ev);
             isZoomed = !isZoomed;
             trigger.style.cursor = isZoomed ? 'zoom-out' : 'zoom-in';
@@ -1269,123 +1203,3 @@ var SnapshotsPanel = /** @class */ (function () {
     };
     return SnapshotsPanel;
 }());
-// =================================================================================================================================
-//						S T O R E I T E M
-// =================================================================================================================================
-var StoreItem = /** @class */ (function () {
-    // =============================================================================================================================
-    function StoreItem(fe, event, listener) {
-        this.fe = fe;
-        fe.addEventListener(event, listener);
-        this.destructor = function () { return fe.removeEventListener(event, listener); };
-    }
-    // =============================================================================================================================
-    StoreItem.NEW = function (e, listener) {
-        var tag = e.tagName;
-        if (tag === 'INPUT') {
-            var ie = e;
-            return StoreItem.INPUTTYPES.includes(ie.type) ? new StoreItemInput(ie, listener) : undefined;
-        }
-        if (tag === 'SELECT')
-            return new StoreItemSelect(e, listener);
-        if (tag === 'TEXTAREA')
-            return new StoreItemTextArea(e, listener);
-        return undefined;
-    };
-    // =============================================================================================================================
-    StoreItem.prototype.destructor = function () {
-        // function body overwritten in constructor
-    };
-    // =============================================================================================================================
-    StoreItem.prototype.getError = function (_) {
-        return this.fe.validationMessage || (this.fe.required && !this.fe.value && 'Required') || undefined;
-    };
-    // =============================================================================================================================
-    StoreItem.prototype.getName = function () {
-        return this.fe.name;
-    };
-    // =============================================================================================================================
-    StoreItem.prototype.getValue = function () {
-        return this.fe.value || undefined;
-    };
-    // =============================================================================================================================
-    StoreItem.prototype.isDisabled = function () {
-        return this.fe.disabled;
-    };
-    StoreItem.INPUTTYPES = [
-        'checkbox',
-        'color',
-        'date',
-        'datetime',
-        'datetime-local',
-        'email',
-        'month',
-        'number',
-        'password',
-        'radio',
-        'range',
-        'search',
-        'tel',
-        'text',
-        'time',
-        'url',
-        'week'
-    ];
-    return StoreItem;
-}());
-// =================================================================================================================================
-//						S T O R E I T E M I N P U T
-// =================================================================================================================================
-var StoreItemInput = /** @class */ (function (_super) {
-    __extends(StoreItemInput, _super);
-    // =============================================================================================================================
-    function StoreItemInput(e, listener) {
-        return _super.call(this, e, 'input', listener) || this;
-    }
-    return StoreItemInput;
-}(StoreItem));
-// =================================================================================================================================
-//						S T O R E I T E M S E L E C T
-// =================================================================================================================================
-var StoreItemSelect = /** @class */ (function (_super) {
-    __extends(StoreItemSelect, _super);
-    // =============================================================================================================================
-    function StoreItemSelect(e, listener) {
-        var _this = _super.call(this, e, 'change', listener) || this;
-        _this.e = e;
-        _this.isMultiple = e.multiple;
-        return _this;
-    }
-    // =============================================================================================================================
-    StoreItemSelect.prototype.getValue = function () {
-        var index = this.e.selectedIndex;
-        if (index < 0)
-            return undefined;
-        if (!this.isMultiple)
-            return [index];
-        var indexes = [];
-        var options = this.e.options;
-        for (var i = options.length; --i >= index;)
-            if (options[i].selected)
-                indexes.push(i);
-        return indexes.reverse();
-    };
-    return StoreItemSelect;
-}(StoreItem));
-// =================================================================================================================================
-//						S T O R E I T E M T E X T A R E A
-// =================================================================================================================================
-var StoreItemTextArea = /** @class */ (function (_super) {
-    __extends(StoreItemTextArea, _super);
-    // =============================================================================================================================
-    function StoreItemTextArea(e, listener) {
-        var _this = _super.call(this, e, 'input', listener) || this;
-        _this.e = e;
-        return _this;
-    }
-    // =============================================================================================================================
-    StoreItemTextArea.prototype.isDisabled = function () {
-        return this.e.disabled || this.e.readOnly;
-    };
-    return StoreItemTextArea;
-}(StoreItem));

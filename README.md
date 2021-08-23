@@ -116,6 +116,13 @@ createPanel | ( | Create a panel to hold multiple minimaps.
 
 ## FmmElementFactory
 
+## FmmForm
+
+Constructor Parameter | Type | Description
+--- | --- | ---
+form | HTMLFormElement | The form.
+<a name='fmmform-page'></a>page | HTMElement | | Optional alternative element to use instead of the form to determine the bounding rectangle containing all form elements.
+
 ## FmmFramework
 
 ## FmmMapString
@@ -125,7 +132,7 @@ createPanel | ( | Create a panel to hold multiple minimaps.
 Method | Parameter/Returns | Description
 --- | --- | ---
 compose | ( | Sync the minimap with changes in form composition if elements were added or removed.
-&nbsp; | <a name='mm-compose-customwidgetids'></a>customWidgetIds?: string[] | List of non-standard form elements by ID or NAME attribute.
+&nbsp; | <a name='mm-compose-customelementids'></a>customElementIds?: string[] | List of non-standard form elements by ID or NAME attribute.
 &nbsp; | ): void
 <a name='mm-destructor'></a>destructor | (): void | Destroy this minimap and remove it from the DOM.
 detach | (): void | Detach this minimap.  Detached minimaps will be shown grayed out.
@@ -138,17 +145,15 @@ Property | Type | Default | Description
 <a name='mcp-aggregatelabels'></a>aggregateLabels | [FmmMapString](#fmmmapstring) | |
 <a name='mcp-anchor'></a>anchor | HTMLElement | | The element whose mouse enter event will show the minimap as a popup.  If undefined, the minimap will be shown in the panel.
 <a name='mcp-debouncemsec'></a>debounceMsec | number | 200 | Delay for responding to form changes.
-<a name='mcp-dynamiclabels'></a>dynamicLabels | string[] | | List of form elements, by ID or NAME, whose label may change after creation.
-<a name='mcp-form'></a>form | HTMLFormElement | **Required** | The form.
+<a name='mcp-dynamiclabels'></a>dynamicLabels | string[] | | List of ID or NAME of form elements whose label may change after creation.
+<a name='mcp-form'></a>form | [FmmForm](#fmmform) | **Required**
 <a name='mcp-framework'></a>framework | [FmmFramework](#fmmframework) | | 
 <a name='mcp-onupdate'></a>onUpdate | [FmmOnUpdate](#fmmonupdate) | | Callback when the minimap updates itself for whatever reason.
-<a name='mcp-page'></a>page | HTMLElement | | Alternative element to use instead of the form to determine the bounding rectangle containing all form elements.
 <a name='mcp-store'></a>store | [FmmStore](#fmmstore)
 <a name='mcp-title'></a>title | string | **Required** | Minimap title.
 <a name='mcp-usepaneldetail'></a>usePanelDetail | boolean | false | Show details in panel instead of creating a popup per minimap.
 <a name='mcp-usewidthtoscale'></a>useWidthToScale | boolean | false | Use width rather than height to size the minimap, maintaining aspect ratio of the form (or **page** if specified).
 <a name='mcp-verbosity'></a>verbosity | number | 0 | Set to 1 to see processing times in console.
-<a name='mcp-widgetfactories'></a>widgetFactories | [FmmWidgetFactory](#fmmwidgetfactory)[] | | 
 <a name='mcp-zoomfactor'></a>zoomFactor | number | | Zoom factor of anchored minimap (capped at 5.0 times).
 
 ## FmmOnUpdate
@@ -165,5 +170,3 @@ destructor | (): void | Destroy this panel and remove it from the DOM.
 
 ## FmmStore
 Constructs a store as a single source of truth (SSOT) for form values and errors.  Without a store, the form elements will be monitored directly.
-
-## FmmWidgetFactory

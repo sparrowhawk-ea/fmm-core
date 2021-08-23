@@ -7,10 +7,39 @@ export interface FmmElementFactory {
 }
 
 // =================================================================================================================================
+//						F M M F O R M
+// =================================================================================================================================
+export interface FmmForm {
+	clearReflowHandler(): void;
+	clipsContentX(element: FmmFormElement): boolean;
+	clipsContentY(element: FmmFormElement): boolean;
+	contains(element: FmmFormElement, descendent: FmmFormElement): boolean;
+	findKeyInObject(element: FmmFormElement, object: Record<string, unknown>): string;
+	getDisplayLabel(name: string, element: FmmFormElement, label: FmmFormElement): string;
+	getDisplayValue(name: string, element: FmmFormElement, label: string, rawValue: unknown): string;
+	getElements(customElementIds: string[]): FmmFormElement[];
+	getLabelFor(element: FmmFormElement): FmmFormElement;
+	getParent(element: FmmFormElement): FmmFormElement;
+	getPlaceholder(element: FmmFormElement): string;
+	getRect(element?: FmmFormElement): Readonly<FmmRect>;
+	isDisabled(element: FmmFormElement): boolean;
+	isHidden(element: FmmFormElement): boolean;
+	setReflowHandler(handler: () => void): void;
+}
+
+// =================================================================================================================================
+//						F M M F O R M E L E M E N T
+// =================================================================================================================================
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface FmmFormElement {
+	// marker interface
+}
+
+// =================================================================================================================================
 //						F M M F R A M E W O R K
 // =================================================================================================================================
 export interface FmmFramework {
-	createFrameworkItem(name: string, element: HTMLElement): FmmFrameworkItem;
+	createFrameworkItem(name: string, element: FmmFormElement): FmmFrameworkItem;
 }
 
 // =================================================================================================================================
@@ -18,10 +47,10 @@ export interface FmmFramework {
 // =================================================================================================================================
 export interface FmmFrameworkItem {
 	destructor(): void;
-	getEnvelope(name: string, element: HTMLElement, label: HTMLElement): HTMLElement;
-	getError(name: string, element: HTMLElement, envelope: HTMLElement, hasValue: boolean): string;
-	getLabel(name: string, envelope: HTMLElement): HTMLElement;
-	getValue(name: string, element: HTMLElement, envelope: HTMLElement, label: string): string;
+	getEnvelope(name: string, element: FmmFormElement, label: FmmFormElement): FmmFormElement;
+	getError(name: string, element: FmmFormElement, envelope: FmmFormElement, hasValue: boolean): string;
+	getLabel(name: string, envelope: FmmFormElement): FmmFormElement;
+	getValue(name: string, element: FmmFormElement, envelope: FmmFormElement, label: string): string;
 }
 
 // =================================================================================================================================
@@ -35,7 +64,7 @@ export interface FmmMapString {
 //						F M M M I N I M A P
 // =================================================================================================================================
 export interface FmmMinimap {
-	compose(customWidgetIds?: string[]): void;
+	compose(customElementIds?: string[]): void;
 	destructor(): void;
 	detach(): void;
 	takeSnapshot(): boolean;
@@ -49,16 +78,14 @@ export interface FmmMinimapCreateParam {
 	anchor?: HTMLDivElement;
 	debounceMsec?: number;
 	dynamicLabels?: string[];
-	form: HTMLFormElement;
+	form: FmmForm;
 	framework?: FmmFramework;
 	onUpdate?: FmmOnUpdate;
-	page?: HTMLElement;
 	store?: FmmStore;
 	title: string;
 	usePanelDetail?: boolean;
 	useWidthToScale?: boolean;
 	verbosity?: number;
-	widgetFactories?: FmmWidgetFactory[];
 	zoomFactor?: number;
 }
 
@@ -74,6 +101,18 @@ export interface FmmPanel {
 	createMinimap(p: Readonly<FmmMinimapCreateParam>): FmmMinimap;
 	destroyDetached(): void;
 	destructor(): void;
+}
+
+// =================================================================================================================================
+//						F M M R E C T
+// =================================================================================================================================
+export interface FmmRect {
+	bottom: number;
+	height: number;
+	left: number;
+	right: number;
+	top: number;
+	width: number;
 }
 
 // =================================================================================================================================
@@ -108,8 +147,12 @@ export type FmmStatus = 'Disabled' | 'Invalid' | 'Optional' | 'Required' | 'Vali
 //						F M M S T O R E
 // =================================================================================================================================
 export interface FmmStore {
-	createStoreItem(element: HTMLElement, createDefaultItem: () => FmmStoreItem): FmmStoreItem;
-	notifyMinimap(minimap: FmmMinimap, on: boolean): void;
+	createStoreItem(form: FmmForm, element: FmmFormElement): FmmStoreItem;
+	getError(form: FmmForm, item: FmmStoreItem, hasValue: boolean): string;
+	getName(form: FmmForm, item: FmmStoreItem): string;
+	getValue(form: FmmForm, item: FmmStoreItem): unknown;
+	isDisabled(form: FmmForm, item: FmmStoreItem): boolean;
+	notifyMinimapOnUpdate(minimap: FmmMinimap, on: boolean): void;
 }
 
 // =================================================================================================================================
@@ -124,10 +167,6 @@ export interface FmmStoreErrors {
 // =================================================================================================================================
 export interface FmmStoreItem {
 	destructor(): void;
-	getError(hasValue: boolean): string;
-	getName(): string;
-	getValue(): unknown;
-	isDisabled(): boolean;
 }
 
 // =================================================================================================================================
@@ -135,19 +174,4 @@ export interface FmmStoreItem {
 // =================================================================================================================================
 export interface FmmStoreValues {
 	[k: string]: unknown;
-}
-
-// =================================================================================================================================
-//						F M M W I D G E T
-// =================================================================================================================================
-export interface FmmWidget {
-	destructor(): void;
-	getDisplayValue(name: string, element: HTMLElement, label: string, rawValue: unknown): string;
-}
-
-// =================================================================================================================================
-//						F M M W I D G E T F A C T O R Y
-// =================================================================================================================================
-export interface FmmWidgetFactory {
-	createWidget(name: string, element: HTMLElement): FmmWidget;
 }
