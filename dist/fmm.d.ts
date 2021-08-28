@@ -33,9 +33,7 @@ export interface FmmFrameworkItem {
     getLabel(name: string, envelope: FmmFormElement): FmmFormElement;
     getValue(name: string, element: FmmFormElement, envelope: FmmFormElement, label: string): string;
 }
-export interface FmmMapString {
-    [k: string]: string;
-}
+export declare type FmmMapString = Record<string, string>;
 export interface FmmMinimap {
     compose(customElementIds?: string[]): void;
     destructor(): void;
@@ -95,12 +93,8 @@ export interface FmmStore {
     isDisabled(form: FmmForm, item: FmmStoreItem): boolean;
     notifyMinimapOnUpdate(minimap: FmmMinimap, on: boolean): void;
 }
-export interface FmmStoreErrors {
-    [k: string]: string | string[];
-}
+export declare type FmmStoreErrors = Record<string, string | string[]>;
 export interface FmmStoreItem {
     destructor(): void;
 }
-export interface FmmStoreValues {
-    [k: string]: unknown;
-}
+export declare type FmmStoreValues = Record<string, unknown>;
