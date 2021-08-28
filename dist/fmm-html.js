@@ -16,7 +16,7 @@ var FmmFormHTML = /** @class */ (function () {
     function FmmFormHTML(form, page) {
         this.form = form;
         this.page = page;
-        this.resizeObserver = new ResizeObserver(this.onFormReflow.bind(this));
+        this.resizeObserver = new ResizeObserver(this.onFormResize.bind(this));
         this.page = page || form;
         this.resizeObserver.observe(form);
         this.updateLayoutOnScroll = this.updateLayoutOnScroll.bind(this);
@@ -24,11 +24,11 @@ var FmmFormHTML = /** @class */ (function () {
         page.addEventListener('scroll', this.updateLayoutOnScroll, true);
     }
     // =============================================================================================================================
-    FmmFormHTML.prototype.clearReflowHandler = function () {
+    FmmFormHTML.prototype.clearLayoutHandler = function () {
         this.resizeObserver.disconnect();
         // eslint-disable-next-line @typescript-eslint/unbound-method
         this.page.removeEventListener('scroll', this.updateLayoutOnScroll, true);
-        this.reflowHandler = undefined;
+        this.layoutHandler = undefined;
     };
     // =============================================================================================================================
     FmmFormHTML.prototype.clipsContentX = function (e) {
@@ -41,20 +41,11 @@ var FmmFormHTML = /** @class */ (function () {
         return FmmFormHTML.CLIP.includes(overflow) || FmmFormHTML.CLIP.includes(overflowY);
     };
     // =============================================================================================================================
-    FmmFormHTML.prototype.contains = function (e, d) {
-        return e.contains(d);
+    FmmFormHTML.prototype.getDisplayLabel = function (e, label) {
+        return (label === null || label === void 0 ? void 0 : label.getAttribute('aria-label')) || (label === null || label === void 0 ? void 0 : label.textContent) || e.getAttribute('aria-label') || e.id;
     };
     // =============================================================================================================================
-    FmmFormHTML.prototype.findKeyInObject = function (e, object) {
-        var name = e.getAttribute('name');
-        return name in object ? name : e.id in object ? e.id : undefined;
-    };
-    // =============================================================================================================================
-    FmmFormHTML.prototype.getDisplayLabel = function (name, e, label) {
-        return (label === null || label === void 0 ? void 0 : label.getAttribute('aria-label')) || (label === null || label === void 0 ? void 0 : label.textContent) || e.getAttribute('aria-label') || e.id || name;
-    };
-    // =============================================================================================================================
-    FmmFormHTML.prototype.getDisplayValue = function (_, e, label, value) {
+    FmmFormHTML.prototype.getDisplayValue = function (e, label, value) {
         var tag = e.tagName;
         if (tag === 'INPUT') {
             var ie = e;
@@ -104,6 +95,10 @@ var FmmFormHTML = /** @class */ (function () {
         return (e || this.page).getBoundingClientRect();
     };
     // =============================================================================================================================
+    FmmFormHTML.prototype.getStoreKeys = function (e) {
+        return [e.getAttribute('name'), e.id];
+    };
+    // =============================================================================================================================
     FmmFormHTML.prototype.isDisabled = function (e) {
         if (e.tagName !== 'TEXTAREA')
             return e.disabled;
@@ -115,18 +110,18 @@ var FmmFormHTML = /** @class */ (function () {
         return e.hidden;
     };
     // =============================================================================================================================
-    FmmFormHTML.prototype.setReflowHandler = function (handler) {
-        this.reflowHandler = handler;
+    FmmFormHTML.prototype.setLayoutHandler = function (handler) {
+        this.layoutHandler = handler;
     };
     // =============================================================================================================================
-    FmmFormHTML.prototype.onFormReflow = function () {
-        if (this.reflowHandler)
-            this.reflowHandler();
+    FmmFormHTML.prototype.onFormResize = function () {
+        if (this.layoutHandler)
+            this.layoutHandler.handleLayout(undefined);
     };
     // =============================================================================================================================
     FmmFormHTML.prototype.updateLayoutOnScroll = function (ev) {
-        if (ev.target instanceof HTMLElement /* TODO && this.d.clipContextAncestors.has(ev.target)*/)
-            this.onFormReflow();
+        if (ev.target instanceof HTMLElement && this.layoutHandler)
+            this.layoutHandler.handleLayout(ev.target);
     };
     FmmFormHTML.CLIP = ['auto', 'hidden', 'scroll'];
     return FmmFormHTML;

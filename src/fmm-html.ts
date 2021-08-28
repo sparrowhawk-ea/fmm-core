@@ -1,4 +1,6 @@
-import { FmmForm, FmmFormElement, FmmFramework, FmmFrameworkItem, FmmRect, FmmStore, FmmStoreItem } from './fmm';
+import {
+	FmmForm, FmmFormElement, FmmFormLayoutHandler, FmmFramework, FmmFrameworkItem, FmmRect, FmmStore, FmmStoreItem
+} from './fmm';
 import { FmmStoreBase } from './fmm-store';
 
 // =================================================================================================================================
@@ -20,8 +22,8 @@ export interface FmmFormElementHTML extends FmmFormElement, HTMLElement { }
 // =================================================================================================================================
 export class FmmFormHTML implements FmmForm {
 	private static readonly CLIP = ['auto', 'hidden', 'scroll'];
-	private readonly resizeObserver = new ResizeObserver(this.onFormReflow.bind(this));
-	private reflowHandler: () => void;
+	private readonly resizeObserver = new ResizeObserver(this.onFormResize.bind(this));
+	private layoutHandler: FmmFormLayoutHandler;
 
 	// =============================================================================================================================
 	public constructor(private readonly form: HTMLFormElement, private readonly page?: HTMLElement) {
@@ -33,11 +35,11 @@ export class FmmFormHTML implements FmmForm {
 	}
 
 	// =============================================================================================================================
-	public clearReflowHandler(): void {
+	public clearLayoutHandler(): void {
 		this.resizeObserver.disconnect();
 		// eslint-disable-next-line @typescript-eslint/unbound-method
 		this.page.removeEventListener('scroll', this.updateLayoutOnScroll, true);
-		this.reflowHandler = undefined;
+		this.layoutHandler = undefined;
 	}
 
 	// =============================================================================================================================
@@ -53,23 +55,12 @@ export class FmmFormHTML implements FmmForm {
 	}
 
 	// =============================================================================================================================
-	public contains(e: FmmFormElementHTML, d: FmmFormElementHTML): boolean {
-		return e.contains(d);
+	public getDisplayLabel(e: FmmFormElementHTML, label: FmmFormElementHTML): string {
+		return label?.getAttribute('aria-label') || label?.textContent || e.getAttribute('aria-label') || e.id;
 	}
 
 	// =============================================================================================================================
-	public findKeyInObject(e: FmmFormElementHTML, object: Record<string, unknown>): string {
-		const name = e.getAttribute('name');
-		return name in object ? name : e.id in object ? e.id : undefined;
-	}
-
-	// =============================================================================================================================
-	public getDisplayLabel(name: string, e: FmmFormElementHTML, label: FmmFormElementHTML): string {
-		return label?.getAttribute('aria-label') || label?.textContent || e.getAttribute('aria-label') || e.id || name;
-	}
-
-	// =============================================================================================================================
-	public getDisplayValue(_: string, e: FmmFormElementHTML, label: string, value: unknown): string {
+	public getDisplayValue(e: FmmFormElementHTML, label: string, value: unknown): string {
 		const tag = e.tagName;
 		if (tag === 'INPUT') {
 			const ie = e as HTMLInputElement;
@@ -119,6 +110,11 @@ export class FmmFormHTML implements FmmForm {
 	}
 
 	// =============================================================================================================================
+	public getStoreKeys(e: FmmFormElementHTML): string[] {
+		return [e.getAttribute('name'), e.id];
+	}
+
+	// =============================================================================================================================
 	public isDisabled(e: FmmFormElementHTML): boolean {
 		if (e.tagName !== 'TEXTAREA') return (e as HTMLInputElement).disabled;
 		const t = e as HTMLTextAreaElement;
@@ -131,18 +127,18 @@ export class FmmFormHTML implements FmmForm {
 	}
 
 	// =============================================================================================================================
-	public setReflowHandler(handler: () => void): void {
-		this.reflowHandler = handler;
+	public setLayoutHandler(handler: FmmFormLayoutHandler): void {
+		this.layoutHandler = handler;
 	}
 
 	// =============================================================================================================================
-	private onFormReflow() {
-		if (this.reflowHandler) this.reflowHandler();
+	private onFormResize() {
+		if (this.layoutHandler) this.layoutHandler.handleLayout(undefined);
 	}
 
 	// =============================================================================================================================
 	private updateLayoutOnScroll(ev: Event) {
-		if (ev.target instanceof HTMLElement/* TODO && this.d.clipContextAncestors.has(ev.target)*/) this.onFormReflow();
+		if (ev.target instanceof HTMLElement && this.layoutHandler) this.layoutHandler.handleLayout(ev.target);
 	}
 }
 

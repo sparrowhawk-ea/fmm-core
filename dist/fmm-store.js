@@ -39,8 +39,12 @@ var FmmStoreImpl = /** @class */ (function (_super) {
     }
     // =============================================================================================================================
     FmmStoreImpl.prototype.createStoreItem = function (form, e) {
-        var key = form.findKeyInObject(e, this.values);
-        return key ? new StoreItem(e, key) : undefined;
+        for (var _i = 0, _a = form.getStoreKeys(e); _i < _a.length; _i++) {
+            var key = _a[_i];
+            if (key && key in this.values)
+                return new StoreItem(e, key);
+        }
+        return undefined;
     };
     // =============================================================================================================================
     FmmStoreImpl.prototype.getError = function (_, item, _hasValue) {

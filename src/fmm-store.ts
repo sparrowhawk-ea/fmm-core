@@ -33,8 +33,9 @@ export class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> 
 
 	// =============================================================================================================================
 	public createStoreItem(form: FmmForm, e: FmmFormElement): FmmStoreItem {
-		const key = form.findKeyInObject(e, this.values);
-		return key ? new StoreItem(e, key) : undefined;
+		for (const key of form.getStoreKeys(e))
+			if (key && key in this.values) return new StoreItem(e, key);
+		return undefined;
 	}
 
 	// =============================================================================================================================

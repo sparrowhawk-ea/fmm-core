@@ -3,23 +3,25 @@ export interface FmmElementFactory {
     createElementNS(namespaceURI: string, qualifiedName: string): Element;
 }
 export interface FmmForm {
-    clearReflowHandler(): void;
+    clearLayoutHandler(): void;
     clipsContentX(element: FmmFormElement): boolean;
     clipsContentY(element: FmmFormElement): boolean;
-    contains(element: FmmFormElement, descendent: FmmFormElement): boolean;
-    findKeyInObject(element: FmmFormElement, object: Record<string, unknown>): string;
-    getDisplayLabel(name: string, element: FmmFormElement, label: FmmFormElement): string;
-    getDisplayValue(name: string, element: FmmFormElement, label: string, rawValue: unknown): string;
+    getDisplayLabel(element: FmmFormElement, label: FmmFormElement): string;
+    getDisplayValue(element: FmmFormElement, label: string, rawValue: unknown): string;
     getElements(customElementIds: string[]): FmmFormElement[];
     getLabelFor(element: FmmFormElement): FmmFormElement;
     getParent(element: FmmFormElement): FmmFormElement;
     getPlaceholder(element: FmmFormElement): string;
     getRect(element?: FmmFormElement): Readonly<FmmRect>;
+    getStoreKeys(element: FmmFormElement): string[];
     isDisabled(element: FmmFormElement): boolean;
     isHidden(element: FmmFormElement): boolean;
-    setReflowHandler(handler: () => void): void;
+    setLayoutHandler(handler: FmmFormLayoutHandler): void;
 }
 export interface FmmFormElement {
+}
+export interface FmmFormLayoutHandler {
+    handleLayout(element: FmmFormElement): void;
 }
 export interface FmmFramework {
     createFrameworkItem(name: string, element: FmmFormElement): FmmFrameworkItem;

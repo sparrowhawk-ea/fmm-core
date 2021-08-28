@@ -1,6 +1,6 @@
 import {
-	FmmElementFactory, FmmForm, FmmFormElement, FmmFramework, FmmFrameworkItem, FmmMapString, FmmMinimap, FmmMinimapCreateParam,
-	FmmOnUpdate, FmmPanel, FmmRect, FmmSnapshot, FmmSnapshots, FmmStatus, FmmStore, FmmStoreItem
+	FmmElementFactory, FmmForm, FmmFormElement, FmmFormLayoutHandler, FmmFramework, FmmFrameworkItem, FmmMapString, FmmMinimap,
+	FmmMinimapCreateParam, FmmOnUpdate, FmmPanel, FmmRect, FmmSnapshot, FmmSnapshots, FmmStatus, FmmStore, FmmStoreItem
 } from './fmm';
 import { FmmStoreHTML } from './fmm-html';
 
@@ -342,7 +342,7 @@ class FormStoreItem {
 		this.dynamicLabel = p.dynamicLabels.includes(name);
 		this.form = p.form;
 		this.framework = p.framework?.createFrameworkItem(name, e) || FormStoreItem.DEFAULT_FRAMEWORK;
-		this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label);
+		this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label) || e;
 		this.label = label || this.framework.getLabel(name, this.envelope);
 		this.snapshot = new Snapshot(name, p);
 	}
@@ -368,7 +368,10 @@ class FormStoreItem {
 
 	// =============================================================================================================================
 	public removeIfDetached() {
-		if (this.form.getParent(this.envelope) && this.form.contains(this.envelope, this.e)) return false;
+		if (this.form.getParent(this.envelope)) {
+			for (let e = this.e; e; e = this.form.getParent(e))
+				if (e === this.envelope) return false; // this.envelope.contains(this.e)
+		}
 		this.snapshot.destructor();
 		this.destructor();
 		return true;
@@ -379,13 +382,13 @@ class FormStoreItem {
 		const data = this.snapshot.data;
 		const name = data.name;
 		if (data.label === undefined || this.dynamicLabel) {
-			data.label = Fmm.trim(form.getDisplayLabel(name, this.e, this.label));
+			data.label = Fmm.trim(form.getDisplayLabel(this.e, this.label) || name);
 			data.placeholder = Fmm.trim(this.form.getPlaceholder(this.e));
 		}
 		let displayValue = Fmm.trim(this.framework.getValue(name, this.e, this.envelope, data.label));
 		if (!displayValue) {
 			const rawValue = store.getValue(form, this.storeItem);
-			if (rawValue) displayValue = Fmm.trim(form.getDisplayValue(name, this.e, data.label, rawValue));
+			if (rawValue) displayValue = Fmm.trim(form.getDisplayValue(this.e, data.label, rawValue));
 		}
 		data.value = displayValue;
 		const hasValue = !!displayValue;
@@ -413,10 +416,10 @@ class FormStoreItem {
 
 	// =============================================================================================================================
 	private getCommonAncestor(e: FmmFormElement, label: FmmFormElement): FmmFormElement {
-		if (!label) return e;
-		let parent = this.form.getParent(e);
-		while (parent && !this.form.contains(parent, label)) parent = this.form.getParent(parent);
-		return parent || e;
+		const labelAncestors: FmmFormElement[] = [];
+		do { labelAncestors.push(label); } while ((label = this.form.getParent(label)));
+		while (e && !labelAncestors.includes(e)) e = this.form.getParent(e);
+		return e;
 	}
 }
 
@@ -576,7 +579,7 @@ const G: {
 // =================================================================================================================================
 //						M I N I M A P
 // =================================================================================================================================
-class Minimap implements FmmMinimap {
+class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 	private static readonly DEFAULT_DEBOUNCEMSEC = 200;
 	private static readonly MAX_ZOOMFACTOR = 5.0;
 	private static idCounter = 0;
@@ -651,7 +654,7 @@ class Minimap implements FmmMinimap {
 			this.detailPopup = this.anchored ? frame.newDetailPopup(ef, this.detail) : panel.newDetailPopup(this.detail);
 		this.status.onmouseover = this.onStatusEnter.bind(this);
 		this.d.paramUpdates.store.notifyMinimapOnUpdate(this, true);
-		this.d.paramUpdates.form.setReflowHandler(this.onFormReflow.bind(this));
+		this.d.paramUpdates.form.setLayoutHandler(this);
 	}
 
 	// =============================================================================================================================
@@ -710,10 +713,18 @@ class Minimap implements FmmMinimap {
 		this.pendingSnapshot = true;
 		this.doPendingUpdates();
 		this.frame.detach();
-		this.d.paramUpdates.form.clearReflowHandler();
+		this.d.paramUpdates.form.clearLayoutHandler();
 		this.d.paramUpdates.store.notifyMinimapOnUpdate(this, false);
 		this.d.storeItems.destructor();
 		this.d = undefined;
+	}
+
+	// =============================================================================================================================
+	public handleLayout(e: FmmFormElement) {
+		if (!e || this.d.clipContextAncestors.has(e)) {
+			this.pendingLayout = true;
+			this.d.doUpdates.schedule();	
+		}
 	}
 
 	// =============================================================================================================================
@@ -750,6 +761,7 @@ class Minimap implements FmmMinimap {
 	public onFrameLeave() {
 		if (this.isPinned) return;
 		this.pin.trackOff(undefined, this.frame);
+		this.detail.clear(this.activeSnapshot);
 		if (this.detailPopup) this.detailPopup.hide();
 		else this.panel.hideDetailPopup();
 		if (this.frame.popup) this.frame.popup.hide();
@@ -826,12 +838,6 @@ class Minimap implements FmmMinimap {
 			if (lCompose || lLayout || lSnapshot) console.log('FormMinimap[' + this.title + ']' + lCompose + lLayout + lSnapshot);
 		}
 		this.pendingCompose = this.pendingLayout = this.pendingSnapshot = false;
-	}
-
-	// =============================================================================================================================
-	private onFormReflow() {
-		this.pendingLayout = true;
-		this.d.doUpdates.schedule();
 	}
 
 	// =============================================================================================================================

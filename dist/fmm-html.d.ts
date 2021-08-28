@@ -1,4 +1,4 @@
-import { FmmForm, FmmFormElement, FmmFramework, FmmFrameworkItem, FmmRect, FmmStore, FmmStoreItem } from './fmm';
+import { FmmForm, FmmFormElement, FmmFormLayoutHandler, FmmFramework, FmmFrameworkItem, FmmRect, FmmStore, FmmStoreItem } from './fmm';
 import { FmmStoreBase } from './fmm-store';
 export declare const FmmBootstrap4: FmmFramework;
 export interface FmmFormElementHTML extends FmmFormElement, HTMLElement {
@@ -8,24 +8,23 @@ export declare class FmmFormHTML implements FmmForm {
     private readonly page?;
     private static readonly CLIP;
     private readonly resizeObserver;
-    private reflowHandler;
+    private layoutHandler;
     constructor(form: HTMLFormElement, page?: HTMLElement);
-    clearReflowHandler(): void;
+    clearLayoutHandler(): void;
     clipsContentX(e: FmmFormElementHTML): boolean;
     clipsContentY(e: FmmFormElementHTML): boolean;
-    contains(e: FmmFormElementHTML, d: FmmFormElementHTML): boolean;
-    findKeyInObject(e: FmmFormElementHTML, object: Record<string, unknown>): string;
-    getDisplayLabel(name: string, e: FmmFormElementHTML, label: FmmFormElementHTML): string;
-    getDisplayValue(_: string, e: FmmFormElementHTML, label: string, value: unknown): string;
+    getDisplayLabel(e: FmmFormElementHTML, label: FmmFormElementHTML): string;
+    getDisplayValue(e: FmmFormElementHTML, label: string, value: unknown): string;
     getElements(customElementIds: string[]): FmmFormElementHTML[];
     getLabelFor(e: FmmFormElementHTML): FmmFormElementHTML;
     getParent(e: FmmFormElementHTML): FmmFormElementHTML;
     getPlaceholder(e: FmmFormElementHTML): string;
     getRect(e?: FmmFormElementHTML): Readonly<FmmRect>;
+    getStoreKeys(e: FmmFormElementHTML): string[];
     isDisabled(e: FmmFormElementHTML): boolean;
     isHidden(e: FmmFormElementHTML): boolean;
-    setReflowHandler(handler: () => void): void;
-    private onFormReflow;
+    setLayoutHandler(handler: FmmFormLayoutHandler): void;
+    private onFormResize;
     private updateLayoutOnScroll;
 }
 export declare class FmmFrameworkItemHTML implements FmmFrameworkItem {

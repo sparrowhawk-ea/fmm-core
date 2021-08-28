@@ -214,7 +214,7 @@ var FormStoreItem = /** @class */ (function () {
         this.dynamicLabel = p.dynamicLabels.includes(name);
         this.form = p.form;
         this.framework = ((_a = p.framework) === null || _a === void 0 ? void 0 : _a.createFrameworkItem(name, e)) || FormStoreItem.DEFAULT_FRAMEWORK;
-        this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label);
+        this.envelope = this.framework.getEnvelope(name, e, label) || this.getCommonAncestor(e, label) || e;
         this.label = label || this.framework.getLabel(name, this.envelope);
         this.snapshot = new Snapshot(name, p);
     }
@@ -238,8 +238,11 @@ var FormStoreItem = /** @class */ (function () {
     };
     // =============================================================================================================================
     FormStoreItem.prototype.removeIfDetached = function () {
-        if (this.form.getParent(this.envelope) && this.form.contains(this.envelope, this.e))
-            return false;
+        if (this.form.getParent(this.envelope)) {
+            for (var e = this.e; e; e = this.form.getParent(e))
+                if (e === this.envelope)
+                    return false; // this.envelope.contains(this.e)
+        }
         this.snapshot.destructor();
         this.destructor();
         return true;
@@ -249,14 +252,14 @@ var FormStoreItem = /** @class */ (function () {
         var data = this.snapshot.data;
         var name = data.name;
         if (data.label === undefined || this.dynamicLabel) {
-            data.label = Fmm.trim(form.getDisplayLabel(name, this.e, this.label));
+            data.label = Fmm.trim(form.getDisplayLabel(this.e, this.label) || name);
             data.placeholder = Fmm.trim(this.form.getPlaceholder(this.e));
         }
         var displayValue = Fmm.trim(this.framework.getValue(name, this.e, this.envelope, data.label));
         if (!displayValue) {
             var rawValue = store.getValue(form, this.storeItem);
             if (rawValue)
-                displayValue = Fmm.trim(form.getDisplayValue(name, this.e, data.label, rawValue));
+                displayValue = Fmm.trim(form.getDisplayValue(this.e, data.label, rawValue));
         }
         data.value = displayValue;
         var hasValue = !!displayValue;
@@ -284,12 +287,13 @@ var FormStoreItem = /** @class */ (function () {
     };
     // =============================================================================================================================
     FormStoreItem.prototype.getCommonAncestor = function (e, label) {
-        if (!label)
-            return e;
-        var parent = this.form.getParent(e);
-        while (parent && !this.form.contains(parent, label))
-            parent = this.form.getParent(parent);
-        return parent || e;
+        var labelAncestors = [];
+        do {
+            labelAncestors.push(label);
+        } while ((label = this.form.getParent(label)));
+        while (e && !labelAncestors.includes(e))
+            e = this.form.getParent(e);
+        return e;
     };
     FormStoreItem.DEFAULT_FRAMEWORK = {
         destructor: function () { return undefined; },
@@ -506,7 +510,7 @@ var Minimap = /** @class */ (function () {
             this.detailPopup = this.anchored ? frame.newDetailPopup(ef, this.detail) : panel.newDetailPopup(this.detail);
         this.status.onmouseover = this.onStatusEnter.bind(this);
         this.d.paramUpdates.store.notifyMinimapOnUpdate(this, true);
-        this.d.paramUpdates.form.setReflowHandler(this.onFormReflow.bind(this));
+        this.d.paramUpdates.form.setLayoutHandler(this);
     }
     // =============================================================================================================================
     Minimap.ONUPDATE = function (_) {
@@ -576,10 +580,17 @@ var Minimap = /** @class */ (function () {
         this.pendingSnapshot = true;
         this.doPendingUpdates();
         this.frame.detach();
-        this.d.paramUpdates.form.clearReflowHandler();
+        this.d.paramUpdates.form.clearLayoutHandler();
         this.d.paramUpdates.store.notifyMinimapOnUpdate(this, false);
         this.d.storeItems.destructor();
         this.d = undefined;
+    };
+    // =============================================================================================================================
+    Minimap.prototype.handleLayout = function (e) {
+        if (!e || this.d.clipContextAncestors.has(e)) {
+            this.pendingLayout = true;
+            this.d.doUpdates.schedule();
+        }
     };
     // =============================================================================================================================
     Minimap.prototype.layout = function (zoomEvent) {
@@ -617,6 +628,7 @@ var Minimap = /** @class */ (function () {
         if (this.isPinned)
             return;
         this.pin.trackOff(undefined, this.frame);
+        this.detail.clear(this.activeSnapshot);
         if (this.detailPopup)
             this.detailPopup.hide();
         else
@@ -699,11 +711,6 @@ var Minimap = /** @class */ (function () {
                 console.log('FormMinimap[' + this.title + ']' + lCompose + lLayout + lSnapshot);
         }
         this.pendingCompose = this.pendingLayout = this.pendingSnapshot = false;
-    };
-    // =============================================================================================================================
-    Minimap.prototype.onFormReflow = function () {
-        this.pendingLayout = true;
-        this.d.doUpdates.schedule();
     };
     // =============================================================================================================================
     Minimap.prototype.showPopups = function () {
