@@ -7,6 +7,7 @@ import { FmmStoreBase } from './fmm-store';
 //						F M M B O O T S T R A P 4
 // =================================================================================================================================
 export const FmmBootstrap4: FmmFramework = {
+	// =============================================================================================================================
 	createFrameworkItem(_: string, e: FmmFormElementHTML): FmmFrameworkItemHTML {
 		return e.tagName === 'INPUT' && ['checkbox', 'radio'].includes((e as HTMLInputElement).type) ? G.B4_Check : G.B4_Other;
 	}
