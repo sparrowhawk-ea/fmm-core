@@ -1,94 +1,57 @@
-import { __extends } from "tslib";
-// =================================================================================================================================
-//						F M M S T O R E B A S E
-// =================================================================================================================================
-var FmmStoreBase = /** @class */ (function () {
-    function FmmStoreBase() {
+export class FmmStoreBase {
+    constructor() {
         this.minimaps = new Set();
     }
-    // =============================================================================================================================
-    FmmStoreBase.prototype.notifyMinimapOnUpdate = function (minimap, on) {
+    notifyMinimapOnUpdate(minimap, on) {
         if (on)
             this.minimaps.add(minimap);
         else
             this.minimaps.delete(minimap);
-    };
-    // =============================================================================================================================
-    FmmStoreBase.prototype.notifyMinimaps = function () {
-        var _this = this;
-        var stale = new Set();
-        this.minimaps.forEach(function (m) { return m.takeSnapshot() || stale.add(m); });
-        stale.forEach(function (m) { return _this.minimaps.delete(m); });
-    };
-    return FmmStoreBase;
-}());
-export { FmmStoreBase };
-// =================================================================================================================================
-//						F M M S T O R E I M P L
-// =================================================================================================================================
-var FmmStoreImpl = /** @class */ (function (_super) {
-    __extends(FmmStoreImpl, _super);
-    // =============================================================================================================================
-    function FmmStoreImpl(values, errors) {
-        var _this = _super.call(this) || this;
-        _this.values = values;
-        _this.errors = errors;
-        _this.errors = errors || {};
-        _this.values = values || {};
-        return _this;
     }
-    // =============================================================================================================================
-    FmmStoreImpl.prototype.createStoreItem = function (form, e) {
-        for (var _i = 0, _a = form.getStoreKeys(e); _i < _a.length; _i++) {
-            var key = _a[_i];
-            if (key && key in this.values)
-                return new StoreItem(e, key);
-        }
-        return undefined;
-    };
-    // =============================================================================================================================
-    FmmStoreImpl.prototype.getError = function (_, item, _hasValue) {
-        var error = this.errors[item.key];
-        if (Array.isArray(error))
-            return error.length ? String(error[0]) : undefined;
-        return error ? String(error) : undefined;
-    };
-    // =============================================================================================================================
-    FmmStoreImpl.prototype.getName = function (_, item) {
-        return item.key;
-    };
-    // =============================================================================================================================
-    FmmStoreImpl.prototype.getValue = function (_, item) {
-        return this.values[item.key];
-    };
-    // =============================================================================================================================
-    FmmStoreImpl.prototype.isDisabled = function (form, item) {
-        return form.isDisabled(item.e);
-    };
-    // =============================================================================================================================
-    FmmStoreImpl.prototype.update = function (values, errors) {
+    notifyMinimaps() {
+        const stale = new Set();
+        this.minimaps.forEach(m => m.takeSnapshot() || stale.add(m));
+        stale.forEach(m => this.minimaps.delete(m));
+    }
+}
+export class FmmStoreImpl extends FmmStoreBase {
+    constructor(values, errors) {
+        super();
+        this.values = values;
         this.errors = errors || {};
         this.values = values || {};
-        _super.prototype.notifyMinimaps.call(this);
-    };
-    return FmmStoreImpl;
-}(FmmStoreBase));
-export { FmmStoreImpl };
-// =================================================================================================================================
-// =================================================================================================================================
-// =================================================	P R I V A T E	============================================================
-// =================================================================================================================================
-// =================================================================================================================================
-// =================================================================================================================================
-//						S T O R E I T E M 
-// =================================================================================================================================
-var StoreItem = /** @class */ (function () {
-    // =============================================================================================================================
-    function StoreItem(e, key) {
+    }
+    createStoreItem(form, e) {
+        for (const key of form.getStoreKeys(e))
+            if (key && key in this.values)
+                return new StoreItem(e, key);
+        return undefined;
+    }
+    getError(_, item, _hasValue) {
+        const error = this.errors[item.key];
+        if (Array.isArray(error))
+            return error.length ? String(error[0]) : '';
+        return error ? String(error) : '';
+    }
+    getName(_, item) {
+        return item.key;
+    }
+    getValue(_, item) {
+        return this.values[item.key];
+    }
+    isDisabled(form, item) {
+        return form.isDisabled(item.e);
+    }
+    update(values, errors) {
+        this.errors = errors || {};
+        this.values = values || {};
+        super.notifyMinimaps();
+    }
+}
+class StoreItem {
+    constructor(e, key) {
         this.e = e;
         this.key = key;
     }
-    // =============================================================================================================================
-    StoreItem.prototype.destructor = function () { };
-    return StoreItem;
-}());
+    destructor() { }
+}

@@ -24,15 +24,17 @@ export abstract class FmmStoreBase {
 //						F M M S T O R E I M P L
 // =================================================================================================================================
 export class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> extends FmmStoreBase implements FmmStore {
+	private errors!: TE;
+
 	// =============================================================================================================================
-	public constructor(private values: TV, private errors?: TE) {
+	public constructor(private values: TV, errors?: TE) {
 		super();
 		this.errors = errors || ({} as TE);
 		this.values = values || ({} as TV);
 	}
 
 	// =============================================================================================================================
-	public createStoreItem(form: FmmForm, e: FmmFormElement): FmmStoreItem {
+	public createStoreItem(form: FmmForm, e: FmmFormElement): FmmStoreItem | undefined {
 		for (const key of form.getStoreKeys(e))
 			if (key && key in this.values) return new StoreItem(e, key);
 		return undefined;
@@ -41,8 +43,8 @@ export class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> 
 	// =============================================================================================================================
 	public getError(_: FmmForm, item: StoreItem, _hasValue: boolean): string {
 		const error = this.errors[item.key];
-		if (Array.isArray(error)) return error.length ? String(error[0]) : undefined;
-		return error ? String(error) : undefined;
+		if (Array.isArray(error)) return error.length ? String(error[0]) : '';
+		return error ? String(error) : '';
 	}
 
 	// =============================================================================================================================

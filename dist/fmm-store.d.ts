@@ -6,9 +6,9 @@ export declare abstract class FmmStoreBase {
 }
 export declare class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> extends FmmStoreBase implements FmmStore {
     private values;
-    private errors?;
+    private errors;
     constructor(values: TV, errors?: TE);
-    createStoreItem(form: FmmForm, e: FmmFormElement): FmmStoreItem;
+    createStoreItem(form: FmmForm, e: FmmFormElement): FmmStoreItem | undefined;
     getError(_: FmmForm, item: StoreItem, _hasValue: boolean): string;
     getName(_: FmmForm, item: StoreItem): string;
     getValue(_: FmmForm, item: StoreItem): unknown;

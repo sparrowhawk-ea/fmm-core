@@ -24,15 +24,16 @@ export interface FmmFormElementHTML extends FmmFormElement, HTMLElement { }
 export class FmmFormHTML implements FmmForm {
 	private static readonly CLIP = ['auto', 'hidden', 'scroll'];
 	private readonly resizeObserver = new ResizeObserver(this.onFormResize.bind(this));
-	private layoutHandler: FmmFormLayoutHandler;
+	private readonly page!: HTMLElement;
+	private layoutHandler?: FmmFormLayoutHandler;
 
 	// =============================================================================================================================
-	public constructor(private readonly form: HTMLFormElement, private readonly page?: HTMLElement) {
+	public constructor(private readonly form: HTMLFormElement, page?: HTMLElement) {
 		this.page = page || form;
 		this.resizeObserver.observe(form);
 		this.updateLayoutOnScroll = this.updateLayoutOnScroll.bind(this);
 		// eslint-disable-next-line @typescript-eslint/unbound-method
-		page.addEventListener('scroll', this.updateLayoutOnScroll, true);
+		this.page.addEventListener('scroll', this.updateLayoutOnScroll, true);
 	}
 
 	// =============================================================================================================================
@@ -65,7 +66,7 @@ export class FmmFormHTML implements FmmForm {
 		const tag = e.tagName;
 		if (tag === 'INPUT') {
 			const ie = e as HTMLInputElement;
-			if (ie.type === 'checkbox' || ie.type === 'radio') return ie.checked ? label : undefined;
+			if (ie.type === 'checkbox' || ie.type === 'radio') return ie.checked ? label : '';
 			return ie.type === 'password' ? '*****' : String(value);
 		}
 		if (tag === 'SELECT') {
@@ -88,7 +89,7 @@ export class FmmFormHTML implements FmmForm {
 	}
 
 	// =============================================================================================================================
-	public getLabelFor(e: FmmFormElementHTML): FmmFormElementHTML {
+	public getLabelFor(e: FmmFormElementHTML): FmmFormElementHTML | undefined {
 		let label = e.id ? this.page.querySelector('label[for=' + e.id + ']') : undefined;
 		if (!label && e.parentElement?.tagName === 'LABEL') label = e.parentElement;
 		if (!label && e.previousElementSibling?.tagName === 'LABEL') label = e.previousElementSibling;
@@ -96,13 +97,13 @@ export class FmmFormHTML implements FmmForm {
 	}
 
 	// =============================================================================================================================
-	public getParent(e: FmmFormElementHTML): FmmFormElementHTML {
-		return e.parentElement;
+	public getParent(e: FmmFormElementHTML): FmmFormElementHTML | undefined {
+		return e.parentElement as HTMLElement;
 	}
 
 	// =============================================================================================================================
 	public getPlaceholder(e: FmmFormElementHTML): string {
-		return e.getAttribute('placeholder');
+		return e.getAttribute('placeholder') || '';
 	}
 
 	// =============================================================================================================================
@@ -112,7 +113,8 @@ export class FmmFormHTML implements FmmForm {
 
 	// =============================================================================================================================
 	public getStoreKeys(e: FmmFormElementHTML): string[] {
-		return [e.getAttribute('name'), e.id];
+		const name = e.getAttribute('name');
+		return name ? [name, e.id] : [e.id];
 	}
 
 	// =============================================================================================================================
@@ -134,7 +136,7 @@ export class FmmFormHTML implements FmmForm {
 
 	// =============================================================================================================================
 	private onFormResize() {
-		if (this.layoutHandler) this.layoutHandler.handleLayout(undefined);
+		if (this.layoutHandler) this.layoutHandler.handleLayout();
 	}
 
 	// =============================================================================================================================
@@ -156,29 +158,29 @@ export class FmmFrameworkItemHTML implements FmmFrameworkItem {
 	public destructor(): void { /**/ }
 
 	// =============================================================================================================================
-	public getEnvelope(_: string, e: FmmFormElementHTML, label: FmmFormElementHTML): FmmFormElementHTML {
+	public getEnvelope(_: string, e: FmmFormElementHTML, label: FmmFormElementHTML): FmmFormElementHTML | undefined {
 		let p = e.parentElement;
 		while (p && p.tagName !== 'FORM' && !p.classList.contains(this.wrapperClass)) p = p.parentElement;
 		if (p && p.tagName !== 'FORM') return p;
 		if (!label) return undefined;
 		p = label.parentElement;
 		while (p && p.tagName !== 'FORM' && !p.classList.contains(this.wrapperClass)) p = p.parentElement;
-		return p?.tagName !== 'FORM' ? p : undefined;
+		return p && p.tagName !== 'FORM' ? p : undefined;
 	}
 
 	// =============================================================================================================================
 	public getError(_: string, _e: FmmFormElementHTML, _n: FmmFormElementHTML, _v: boolean): string {
-		return undefined;
+		return '';
 	}
 
 	// =============================================================================================================================
-	public getLabel(_: string, envelope: FmmFormElementHTML): FmmFormElementHTML {
-		return envelope.querySelector('LABEL') || envelope.querySelector('[aria-label]');
+	public getLabel(_: string, envelope: FmmFormElementHTML): FmmFormElementHTML | undefined {
+		return (envelope.querySelector('LABEL') || envelope.querySelector('[aria-label]')) as HTMLElement;
 	}
 
 	// =============================================================================================================================
 	public getValue(_: string, _e: FmmFormElementHTML, _n: FmmFormElementHTML, _l: string): string {
-		return undefined;
+		return '';
 	}
 }
 
@@ -208,7 +210,7 @@ export class FmmStoreHTML extends FmmStoreBase implements FmmStore {
 	private readonly listener = this.notifyMinimaps.bind(this);
 
 	// =============================================================================================================================
-	public createStoreItem(_: FmmForm, e: FmmFormElementHTML): FmmStoreItem {
+	public createStoreItem(_: FmmForm, e: FmmFormElementHTML): FmmStoreItem | undefined {
 		const tag = e.tagName;
 		if (tag === 'INPUT') {
 			const ie = e as HTMLInputElement;
@@ -221,7 +223,7 @@ export class FmmStoreHTML extends FmmStoreBase implements FmmStore {
 
 	// =============================================================================================================================
 	public getError(_: FmmForm, i: StoreItem, _hasValue: boolean): string {
-		return i.fe.validationMessage || (i.fe.required && !i.fe.value && 'Required') || undefined;
+		return i.fe.validationMessage || (i.fe.required && !i.fe.value && 'Required') || '';
 	}
 
 	// =============================================================================================================================
@@ -257,11 +259,11 @@ class FrameworkItemB4 extends FmmFrameworkItemHTML {
 
 	// =============================================================================================================================
 	public getError(_: string, e: FmmFormElementHTML, _n: FmmFormElementHTML, _v: boolean): string {
-		if (!e.classList.contains('is-invalid') /* && !e.matches(':invalid')*/) return undefined;
+		if (!e.classList.contains('is-invalid') /* && !e.matches(':invalid')*/) return '';
 		for (let s = e.nextElementSibling; s && s !== e; s = s.nextElementSibling) {
-			if (s.classList.contains('invalid-feedback')) return s.textContent;
+			if (s.classList.contains('invalid-feedback')) return s.textContent || '';
 		}
-		return undefined;
+		return '';
 	}
 }
 

@@ -5,10 +5,10 @@ export interface FmmFormElementHTML extends FmmFormElement, HTMLElement {
 }
 export declare class FmmFormHTML implements FmmForm {
     private readonly form;
-    private readonly page?;
     private static readonly CLIP;
     private readonly resizeObserver;
-    private layoutHandler;
+    private readonly page;
+    private layoutHandler?;
     constructor(form: HTMLFormElement, page?: HTMLElement);
     clearLayoutHandler(): void;
     clipsContentX(e: FmmFormElementHTML): boolean;
@@ -16,8 +16,8 @@ export declare class FmmFormHTML implements FmmForm {
     getDisplayLabel(e: FmmFormElementHTML, label: FmmFormElementHTML): string;
     getDisplayValue(e: FmmFormElementHTML, label: string, value: unknown): string;
     getElements(customElementIds: string[]): FmmFormElementHTML[];
-    getLabelFor(e: FmmFormElementHTML): FmmFormElementHTML;
-    getParent(e: FmmFormElementHTML): FmmFormElementHTML;
+    getLabelFor(e: FmmFormElementHTML): FmmFormElementHTML | undefined;
+    getParent(e: FmmFormElementHTML): FmmFormElementHTML | undefined;
     getPlaceholder(e: FmmFormElementHTML): string;
     getRect(e?: FmmFormElementHTML): Readonly<FmmRect>;
     getStoreKeys(e: FmmFormElementHTML): string[];
@@ -31,15 +31,15 @@ export declare class FmmFrameworkItemHTML implements FmmFrameworkItem {
     protected readonly wrapperClass: string;
     constructor(wrapperClass: string);
     destructor(): void;
-    getEnvelope(_: string, e: FmmFormElementHTML, label: FmmFormElementHTML): FmmFormElementHTML;
+    getEnvelope(_: string, e: FmmFormElementHTML, label: FmmFormElementHTML): FmmFormElementHTML | undefined;
     getError(_: string, _e: FmmFormElementHTML, _n: FmmFormElementHTML, _v: boolean): string;
-    getLabel(_: string, envelope: FmmFormElementHTML): FmmFormElementHTML;
+    getLabel(_: string, envelope: FmmFormElementHTML): FmmFormElementHTML | undefined;
     getValue(_: string, _e: FmmFormElementHTML, _n: FmmFormElementHTML, _l: string): string;
 }
 export declare class FmmStoreHTML extends FmmStoreBase implements FmmStore {
     private static readonly INPUTTYPES;
     private readonly listener;
-    createStoreItem(_: FmmForm, e: FmmFormElementHTML): FmmStoreItem;
+    createStoreItem(_: FmmForm, e: FmmFormElementHTML): FmmStoreItem | undefined;
     getError(_: FmmForm, i: StoreItem, _hasValue: boolean): string;
     getName(_: FmmForm, i: StoreItem): string;
     getValue(_: FmmForm, i: StoreItem): unknown;

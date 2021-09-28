@@ -6,11 +6,11 @@ export interface FmmForm {
     clearLayoutHandler(): void;
     clipsContentX(element: FmmFormElement): boolean;
     clipsContentY(element: FmmFormElement): boolean;
-    getDisplayLabel(element: FmmFormElement, label: FmmFormElement): string;
+    getDisplayLabel(element: FmmFormElement, label?: FmmFormElement): string;
     getDisplayValue(element: FmmFormElement, label: string, rawValue: unknown): string;
     getElements(customElementIds: string[]): FmmFormElement[];
-    getLabelFor(element: FmmFormElement): FmmFormElement;
-    getParent(element: FmmFormElement): FmmFormElement;
+    getLabelFor(element: FmmFormElement): FmmFormElement | undefined;
+    getParent(element: FmmFormElement): FmmFormElement | undefined;
     getPlaceholder(element: FmmFormElement): string;
     getRect(element?: FmmFormElement): Readonly<FmmRect>;
     getStoreKeys(element: FmmFormElement): string[];
@@ -21,16 +21,16 @@ export interface FmmForm {
 export interface FmmFormElement {
 }
 export interface FmmFormLayoutHandler {
-    handleLayout(element: FmmFormElement): void;
+    handleLayout(element?: FmmFormElement): void;
 }
 export interface FmmFramework {
-    createFrameworkItem(name: string, element: FmmFormElement): FmmFrameworkItem;
+    createFrameworkItem(name: string, element: FmmFormElement): FmmFrameworkItem | undefined;
 }
 export interface FmmFrameworkItem {
     destructor(): void;
-    getEnvelope(name: string, element: FmmFormElement, label: FmmFormElement): FmmFormElement;
+    getEnvelope(name: string, element: FmmFormElement, label?: FmmFormElement): FmmFormElement | undefined;
     getError(name: string, element: FmmFormElement, envelope: FmmFormElement, hasValue: boolean): string;
-    getLabel(name: string, envelope: FmmFormElement): FmmFormElement;
+    getLabel(name: string, envelope: FmmFormElement): FmmFormElement | undefined;
     getValue(name: string, element: FmmFormElement, envelope: FmmFormElement, label: string): string;
 }
 export declare type FmmMapString = Record<string, string>;
@@ -72,7 +72,7 @@ export interface FmmRect {
 export interface FmmSnapshot {
     readonly aggregateLabel: string;
     readonly name: string;
-    aggregateValues: string[];
+    aggregateValues: string[] | undefined;
     error: string;
     label: string;
     placeholder: string;
@@ -86,7 +86,7 @@ export interface FmmSnapshots {
 }
 export declare type FmmStatus = 'Disabled' | 'Invalid' | 'Optional' | 'Required' | 'Valid';
 export interface FmmStore {
-    createStoreItem(form: FmmForm, element: FmmFormElement): FmmStoreItem;
+    createStoreItem(form: FmmForm, element: FmmFormElement): FmmStoreItem | undefined;
     getError(form: FmmForm, item: FmmStoreItem, hasValue: boolean): string;
     getName(form: FmmForm, item: FmmStoreItem): string;
     getValue(form: FmmForm, item: FmmStoreItem): unknown;
