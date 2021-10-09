@@ -15,7 +15,7 @@ The details for each form element can be shown in a permanently visible shared D
 
 The minimap reflects the aspect ratio of the form.
 The height (or width if [useWidthToScale](#mcp-usewidthtoscale) is true) is sized to fit the dimension of the parent [panel](#fmmpanel).
-For anchored minimaps, the appropriate constraint is set on the CSS selector 'fmm-popup'.
+For anchored minimaps, the appropriate constraint is set on the CSS selector **.fmm-popup**.
 
 Anchored minimaps may be toggle zoomed by [zoomFactor](#mcp-zoomfactor) by clicking on the title bar.
 A popup minimap will hide itself when the mouse leaves the popup unless pinned down with the pushpin.
@@ -142,12 +142,12 @@ detach | (): void | Detach this minimap.  Detached minimaps will be shown grayed
 
 Property | Type | Default | Description
 --- | --- | --- | ---
-<a name='mcp-aggregatelabels'></a>aggregateLabels | [FmmMapString](#fmmmapstring) | |
+<a name='mcp-aggregatelabels'></a>aggregateLabels | [FmmMapString](#fmmmapstring)
 <a name='mcp-anchor'></a>anchor | HTMLElement | | The element whose mouse enter event will show the minimap as a popup.  If undefined, the minimap will be shown in the panel.
 <a name='mcp-debouncemsec'></a>debounceMsec | number | 200 | Delay for responding to form changes.
 <a name='mcp-dynamiclabels'></a>dynamicLabels | string[] | | List of ID or NAME of form elements whose label may change after creation.
 <a name='mcp-form'></a>form | [FmmForm](#fmmform) | **Required**
-<a name='mcp-framework'></a>framework | [FmmFramework](#fmmframework) | | 
+<a name='mcp-framework'></a>framework | [FmmFramework](#fmmframework)
 <a name='mcp-onupdate'></a>onUpdate | [FmmOnUpdate](#fmmonupdate) | | Callback when the minimap updates itself for whatever reason.
 <a name='mcp-store'></a>store | [FmmStore](#fmmstore)
 <a name='mcp-title'></a>title | string | **Required** | Minimap title.
