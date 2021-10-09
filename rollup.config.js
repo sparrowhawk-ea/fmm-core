@@ -9,14 +9,16 @@ export default [
     plugins: [esbuild(), nodeResolve(), commonjs()],
     output: [
       {
+        esModule: false,
+        exports: 'named',
         file: `dist/index.js`,
-        format: 'cjs',
-        sourcemap: false
+        format: 'umd',
+        name: 'LayoutEa'
       },
       {
+        exports: 'named',
         file: `dist/index.mjs`,
-        format: 'es',
-        sourcemap: false
+        format: 'es'
       },
     ],
   },{
