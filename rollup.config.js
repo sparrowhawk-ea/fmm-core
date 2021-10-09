@@ -6,7 +6,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve'
 export default [
   {
     input: 'src/index.ts',
-    plugins: [esbuild(), nodeResolve(), commonjs()],
+    plugins: [esbuild({minify: true}), nodeResolve(), commonjs()],
     output: [
       {
         esModule: false,
