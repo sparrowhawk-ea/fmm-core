@@ -5,7 +5,8 @@
 	},
 	"description": "Form Minimap",
 	"devDependencies": {
-		"@types/resize-observer-browser": "*",
+		"@rollup/plugin-commonjs": "*",
+		"@rollup/plugin-node-resolve": "*",
 		"@typescript-eslint/eslint-plugin": "*",
 		"@typescript-eslint/parser": "*",
 		"eslint": "*",

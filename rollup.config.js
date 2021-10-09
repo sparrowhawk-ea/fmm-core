@@ -1,15 +1,12 @@
+import commonjs from '@rollup/plugin-commonjs'
 import dts from 'rollup-plugin-dts'
 import esbuild from 'rollup-plugin-esbuild'
-
-const bundle = config => ({
-  ...config,
-  input: 'src/index.ts',
-  external: id => !/^[./]/.test(id),
-})
+import { nodeResolve } from '@rollup/plugin-node-resolve'
 
 export default [
-  bundle({
-    plugins: [esbuild()],
+  {
+    input: 'src/index.ts',
+    plugins: [esbuild(), nodeResolve(), commonjs()],
     output: [
       {
         file: `dist/index.js`,
@@ -22,12 +19,12 @@ export default [
         sourcemap: false
       },
     ],
-  }),
-  bundle({
+  },{
+    input: 'src/index.ts',
     plugins: [dts()],
     output: {
       file: `dist/index.d.ts`,
       format: 'es',
     },
-  }),
+  },
 ]
