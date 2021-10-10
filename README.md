@@ -14,10 +14,10 @@ The minimap can be set permanently visible in a panel DIV or popped up on mouse 
 The details for each form element can be shown in a permanently visible shared DIV or in a popup per minimap.
 
 The minimap reflects the aspect ratio of the form.
-The height (or width if [useWidthToScale](#mcp-usewidthtoscale) is true) is sized to fit the dimension of the parent [panel](#fmmpanel).
-For anchored minimaps, the appropriate constraint is set on the CSS selector **.fmm-popup**.
+The height and width are adjusted to fit the dimension of the parent [panel](#fmmpanel).
+When creating anchored minimaps, the boolean-valued property [useWidthToScale](#mcp-usewidthtoscale) determines whether height or width is adjusted for aspect ratio, the other value being set in CSS using the selector **.fmm-popup**.
 
-Anchored minimaps may be toggle zoomed by [zoomFactor](#mcp-zoomfactor) by clicking on the title bar.
+The size of popup minimaps may be toggle zoomed by [zoomFactor](#mcp-zoomfactor) by clicking on the popup's title bar.
 A popup minimap will hide itself when the mouse leaves the popup unless pinned down with the pushpin.
 Hint:  when zooming back in, it may be advisable to pin the pushpin first since the mouse pointer may end up outside the popup upon resize and the popup may therefore hide itself.
 
@@ -44,38 +44,39 @@ Thank you.
 npm install --save @eafmm/core
 ```
 
-## Usage
-1. Create a [minimap](#fmmminimap) specifying either a parent DIV for an always-visible minimap, or an anchor DIV for a popup minimap.
+## Example Popup Minimap
+1. Create a popup [minimap](#fmmminimap) specifying an anchor DIV.
 1. Destroy the minimap when its corresponding form is destroyed.
 
-## Example
 ```ts
 import { Fmm, FmmMinimap } from '@eafmm/core';
 
 const p: FmmMinimapCreateParam = {
+   anchor: anchorDiv,
    form: myForm,
    title: 'Important Info'
 };
-const minimap = Fmm.createMinimap(p, parentDiv);
+const minimap = Fmm.createMinimap(p);
 
 ...
 
 minimap.destructor();
 ```
 
-## Usage Of Wizard Panel With Multiple Minimaps
-1. Create a [panel](#fmmpanel) for the wizard.
-1. Create a [minimap](#fmmminimap) using the panel for the form in each step of the wizard.
+## Example Wizard Panel With Always-Visible Minimaps
+1. Create a [panel](#fmmpanel) soecifying the number of wizard steps, i.e. the number of minimaps expected.
+1. Use the panel to create a [minimap](#fmmminimap) for the form in each step of the wizard.
 1. Detach the minimap when a step is navigated away and its corresponding form is destroyed.  The minimap will be shown greyed out so it can still be used for context and cut-and-paste.
 1. Destroy the panel when the wizard is no longer needed.  All detached minimaps in this panel will be destroyed.
+1. A 'wizard' with only one step is a perfectly legitimate use case to show an always-visible minimap.
 
-## Example Wizard
 ```ts
 import { Fmm, FmmMinimap, FmmPanel } from '@eafmm/core';
 
-const panel = Fmm.createPanel(parentDiv, detailParentDiv);
+const panel = Fmm.createPanel(parentDiv, 2, detailParentDiv);
 const p1: FmmMinimapCreateParam = {
    form: myForm1,
+   ordinal: 0,
    title: 'Step 1',
    usePanelDetail: true
 };
@@ -86,6 +87,7 @@ const minimap1 = panel.createMinimap(p1);
 minimap1.detach();
 const p2: FmmMinimapCreateParam = {
    form: myForm2,
+   ordinal: 1,
    title: 'Step 2',
    usePanelDetail: true
 };
@@ -103,16 +105,16 @@ panel.destructor();
 Static Method | Parameter/Returns | Description
 --- | --- | ---
 createMinimap | ( | Create a minimap.
-&nbsp; | p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
-&nbsp; | <a name='pcm-parent'></a>parent?: HTMLElement | Parent for the minimap.  If undefined, an anchor must be specified in the [FmmMinimapCreateParam](#fmmminimapcreateparam) parameter.
-&nbsp; | ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
-&nbsp; | ): [FmmMinimap](#fmmminimap)
+| p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
+| ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
+| ): [FmmMinimap](#fmmminimap)
 createPanel | ( | Create a panel to hold multiple minimaps.
-&nbsp; | parent: HTMLElement | Parent for the panel.
-&nbsp; | <a name='pcp-detailparent'></a>detailParent?: HTMLElement | Parent for the detail area.  If undefined, details will be shown in a popup.
-&nbsp; | <a name='pcp-vertical'></a>vertical?: boolean | Stack minimaps vertically in the panel.
-&nbsp; | ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
-&nbsp; | ): [FmmPanel](#fmmpanel)
+| parent: HTMLElement | Parent for the panel.
+| <a name='pcp-minimapscount'></a>minimapsCount: number | Number of child minimaps expected.
+| <a name='pcp-detailparent'></a>detailParent?: HTMLElement | Parent for the detail area.  If undefined, details will be shown in a popup.
+| <a name='pcp-vertical'></a>vertical?: boolean | Stack minimaps vertically in the panel.
+| ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
+| ): [FmmPanel](#fmmpanel)
 
 ## FmmElementFactory
 
@@ -132,8 +134,8 @@ form | HTMLFormElement | The form.
 Method | Parameter/Returns | Description
 --- | --- | ---
 compose | ( | Sync the minimap with changes in form composition if elements were added or removed.
-&nbsp; | <a name='mm-compose-customelementids'></a>customElementIds?: string[] | List of non-standard form elements by ID or NAME attribute.
-&nbsp; | ): void
+| <a name='mm-compose-customelementids'></a>customElementIds?: string[] | List of non-standard form elements by ID or NAME attribute.
+| ): void
 <a name='mm-destructor'></a>destructor | (): void | Destroy this minimap and remove it from the DOM.
 detach | (): void | Detach this minimap.  Detached minimaps will be shown grayed out.
 <a name='mm-takesnapshot'></a>takeSnapshot | (): boolean | Sync the minimap with the values and statuses of form elements.  Returns false if minimap was detached or destroyed.
@@ -149,6 +151,7 @@ Property | Type | Default | Description
 <a name='mcp-form'></a>form | [FmmForm](#fmmform) | **Required**
 <a name='mcp-framework'></a>framework | [FmmFramework](#fmmframework)
 <a name='mcp-onupdate'></a>onUpdate | [FmmOnUpdate](#fmmonupdate) | | Callback when the minimap updates itself for whatever reason.
+<a name='mcp-ordinal'></a>ordinal | number | 0 | This minimap's ordinal place in the panel's list of minimaps.
 <a name='mcp-store'></a>store | [FmmStore](#fmmstore)
 <a name='mcp-title'></a>title | string | **Required** | Minimap title.
 <a name='mcp-usepaneldetail'></a>usePanelDetail | boolean | false | Show details in panel instead of creating a popup per minimap.
@@ -163,8 +166,8 @@ Property | Type | Default | Description
 Method | Parameter/Returns | Description
 --- | --- | ---
 createMinimap | ( | Create a mininap in this panel.
-&nbsp; | p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
-&nbsp; | ): [FmmMinimap](#fmmminimap)
+| p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
+| ): [FmmMinimap](#fmmminimap)
 <a name='pm-destroydetached'></a>destroyDetached | (): void | Destroy all detached minimaps in this panel.
 destructor | (): void | Destroy this panel and remove it from the DOM.
 

@@ -121,30 +121,25 @@ export class Fmm {
 	// =============================================================================================================================
 	public static createMinimap(
 		p: Readonly<FmmMinimapCreateParam>,
-		parent?: HTMLDivElement,
 		ef?: FmmElementFactory
 	): FmmMinimap {
-		const err = 'FmmMinimap not created: invalid ';
-		if (parent) {
-			const panel = new Panel(ef || G.EF, true, parent);
-			return panel.createMinimap({ ...p, anchor: undefined, usePanelDetail: true });
-		} else {
-			if (!p.anchor) throw new Error(err + 'anchor');
-			const panel = new Panel(ef || G.EF, false);
-			return panel.createMinimap({ ...p, usePanelDetail: false });
-		}
+		if (!p.anchor) throw new Error('FmmMinimap not created: invalid anchor');
+		const panel = new Panel(ef);
+		return panel.createMinimap({ ...p, ordinal: 0, usePanelDetail: false });
 	}
 
 	// =============================================================================================================================
 	public static createPanel(
 		parent: HTMLDivElement,
+		minimapsCount: number,
 		detailParent?: HTMLDivElement,
 		vertical?: boolean,
 		ef?: FmmElementFactory
 	): FmmPanel {
 		const err = 'FmmPanel not created: invalid ';
 		if (!parent) throw new Error(err + 'parent');
-		return new Panel(ef || G.EF, !!vertical, parent, detailParent);
+		if (minimapsCount < 1 || minimapsCount > 20) throw new Error(err + 'minimapsCount');
+		return new Panel(ef, minimapsCount, !!vertical, parent, detailParent);
 	}
 
 	// =============================================================================================================================
@@ -163,9 +158,9 @@ export class Fmm {
 //						C L I P C O N T E X T
 // =================================================================================================================================
 class ClipContext {
-	private readonly clip!: Readonly<FmmRect>;
-	private readonly clipX!: boolean;
-	private readonly clipY!: boolean;
+	private readonly clip: Readonly<FmmRect>;
+	private readonly clipX: boolean;
+	private readonly clipY: boolean;
 
 	// =============================================================================================================================
 	public constructor(form: FmmForm, e: FmmFormElement, private readonly parent?: ClipContext) {
@@ -246,11 +241,11 @@ class Debouncer {
 //						D E T A I L
 // =================================================================================================================================
 class Detail {
-	public readonly e!: HTMLFieldSetElement;
-	private readonly error!: HTMLDivElement;
-	private readonly label!: HTMLSpanElement;
-	private readonly status!: HTMLDivElement;
-	private readonly value!: HTMLTextAreaElement;
+	public readonly e: HTMLFieldSetElement;
+	private readonly error: HTMLDivElement;
+	private readonly label: HTMLSpanElement;
+	private readonly status: HTMLDivElement;
+	private readonly value: HTMLTextAreaElement;
 	private data = Snapshot.NULLDATA;
 	private minimapId = 0;
 
@@ -320,12 +315,12 @@ class FormStoreItem {
 		getLabel: (_: string, _e: FmmFormElement) => undefined,
 		getValue: (_: string, _e: FmmFormElement, _n: FmmFormElement, _l: string) => ''
 	};
-	private readonly dynamicLabel!: boolean;
-	private readonly envelope!: FmmFormElement;
-	private readonly form!: FmmForm;
-	private readonly framework!: FmmFrameworkItem;
+	private readonly dynamicLabel: boolean;
+	private readonly envelope: FmmFormElement;
+	private readonly form: FmmForm;
+	private readonly framework: FmmFrameworkItem;
 	private readonly label?: FmmFormElement;
-	private readonly snapshot!: Snapshot;
+	private readonly snapshot: Snapshot;
 
 	// =============================================================================================================================
 	public constructor(name: string, public readonly e: FmmFormElement, private readonly storeItem: FmmStoreItem,
@@ -374,7 +369,7 @@ class FormStoreItem {
 	public takeSnapshot(form: FmmForm, store: FmmStore): FmmSnapshot {
 		const data = this.snapshot.data;
 		const name = data.name;
-		if (data.label === undefined || this.dynamicLabel) {
+		if (!data.label || this.dynamicLabel) {
 			data.label = Fmm.trim(form.getDisplayLabel(this.e, this.label) || name);
 			data.placeholder = Fmm.trim(this.form.getPlaceholder(this.e));
 		}
@@ -553,15 +548,10 @@ class Frame {
 //						G
 // =================================================================================================================================
 const G: {
-	EF: FmmElementFactory;
 	ELLIPSIS: (_: HTMLElement) => HTMLElement;
 	NBSP: string;
 	NOP: () => void;
 } = {
-	EF: {
-		createElement: (t: string) => document.createElement(t),
-		createElementNS: (n: string, q: string) => document.createElementNS(n, q)
-	},
 	ELLIPSIS: (e: HTMLElement) => {
 		e.style.overflow = 'hidden';
 		e.style.textOverflow = 'ellipsis';
@@ -580,12 +570,12 @@ class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 	private static readonly DEFAULT_DEBOUNCEMSEC = 200;
 	private static readonly MAX_ZOOMFACTOR = 5.0;
 	private static idCounter = 0;
-	public readonly title!: string;
-	public readonly useWidthToScale!: boolean;
-	private readonly anchored!: boolean;
-	private readonly minimapId!: number;
-	private readonly summaryData!: FmmSnapshot;
-	private readonly verbosity!: number;
+	public readonly ordinal: number;
+	public readonly title: string;
+	public readonly useWidthToScale: boolean;
+	private readonly minimapId: number;
+	private readonly summaryData: FmmSnapshot;
+	private readonly verbosity: number;
 	private activeSnapshot?: FmmSnapshot;
 	private d?: { // all refernences which are dropped when detach() is called
 		readonly doUpdates: Debouncer;
@@ -611,15 +601,15 @@ class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 	// =============================================================================================================================
 	public constructor(p: Readonly<FmmMinimapCreateParam>, panel: Panel) {
 		const ef = panel.ef;
-		this.anchored = !!p.anchor;
 		const status = ef.createElement('DIV') as HTMLDivElement;
+		this.ordinal = p.ordinal || 0;
 		this.summaryData = { ...Snapshot.NULLDATA, label: p.title };
 		this.title = p.title;
 		const frame = new Frame(ef, status, this.title, p.anchor);
-		if (this.anchored) panel.add(this, frame.div);
+		panel.add(this, p.anchor ? undefined : frame.div);
 		frame.div.onmouseenter = this.onFrameEnter.bind(this);
 		frame.div.onmouseleave = this.onFrameLeave.bind(this);
-		if (this.anchored && p.zoomFactor && frame.popup)
+		if (p.anchor && p.zoomFactor && frame.popup)
 			frame.popup.setZoomable(this, frame.header, Math.min(Minimap.MAX_ZOOMFACTOR, Math.max(0.0, p.zoomFactor)));
 		frame.header.onmouseenter = this.onHeaderEnter.bind(this);
 		const snapshotsPanel = new SnapshotsPanel(ef, frame.div);
@@ -652,14 +642,14 @@ class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 		this.z = {
 			detail,
 			detailPopup: detail === panel.detail ? undefined :
-				this.anchored ? frame.newDetailPopup(ef, detail) : panel.newDetailPopup(detail),
+				p.anchor ? frame.newDetailPopup(ef, detail) : panel.newDetailPopup(detail),
 			frame,
 			panel,
 			pin: new PushPin(ef, frame.div),
 			snapshotsPanel,
 			status
 		};
-		status.onmouseover = this.onStatusEnter.bind(this);
+		if (p.anchor) status.onmouseover = this.onStatusEnter.bind(this);
 		this.d.paramUpdates.store.notifyMinimapOnUpdate(this, true);
 		this.d.paramUpdates.form.setLayoutHandler(this);
 	}
@@ -679,6 +669,7 @@ class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 		z.snapshotsPanel.destructor(); // snapshot destructors call detail and pin so destruction order matters
 		z.pin.destructor();
 		z.frame.destructor();
+		z.detail.clear(this.activeSnapshot);
 		if (z.detail !== z.panel.detail) z.detail.destructor();
 		if (z.detailPopup) z.detailPopup.destructor();
 		z.panel.remove(this);
@@ -763,7 +754,7 @@ class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 		if (!z) return;
 		if (!this.isPinned) z.pin.trackOn(z.snapshotsPanel, ev);
 		if (this.activeSnapshot) z.detail.setDisplay(this.minimapId, this.activeSnapshot);
-		if (!this.anchored) this.showPopups();
+		this.showPopups();
 	}
 
 	// =============================================================================================================================
@@ -788,7 +779,7 @@ class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 	// =============================================================================================================================
 	public onStatusEnter(ev: MouseEvent) {
 		ev.stopPropagation();
-		if (this.anchored && !this.z?.frame.popup?.isShowing) this.showPopups();
+		if (!this.z?.frame.popup?.isShowing) this.showPopups();
 	};
 
 	// =============================================================================================================================
@@ -884,6 +875,10 @@ class Minimap implements FmmFormLayoutHandler, FmmMinimap {
 //						P A N E L
 // =================================================================================================================================
 class Panel implements FmmPanel {
+	private static readonly EF: FmmElementFactory = {
+		createElement: (t: string) => document.createElement(t),
+		createElementNS: (n: string, q: string) => document.createElementNS(n, q)
+	};
 	public readonly detail?: Detail;
 	private readonly detailPopup?: Popup;
 	private readonly div?: HTMLDivElement;
@@ -892,8 +887,9 @@ class Panel implements FmmPanel {
 
 	// =============================================================================================================================
 	public constructor(
-		public readonly ef: FmmElementFactory,
-		private readonly vertical: boolean,
+		public readonly ef = Panel.EF,
+		private readonly minimapsCount = 1,
+		private readonly vertical = false,
 		parent?: HTMLDivElement,
 		detailParent?: HTMLDivElement
 	) {
@@ -904,11 +900,9 @@ class Panel implements FmmPanel {
 			popupParentStyle.position = 'relative'; // so popup child can use position:absolute
 			if (!detailParent) this.detailPopup = this.newDetailPopup(this.detail);
 			this.div = parent.appendChild(this.ef.createElement('DIV')) as HTMLDivElement;
-			const divStyle = this.div.style;
-			divStyle.height = divStyle.width = '100%';
-			divStyle.overflowX = vertical ? 'hidden' : 'scroll';
-			divStyle.overflowY = vertical ? 'scroll' : 'hidden';
-			divStyle.whiteSpace = vertical ? 'none' : 'nowrap';
+			this.div.style.height = this.div.style.width = '100%';
+			this.div.style.overflow = 'hidden';
+			this.div.style.position = 'relative';
 		}
 	}
 
@@ -920,20 +914,30 @@ class Panel implements FmmPanel {
 	}
 
 	// =============================================================================================================================
-	public add(minimap: Minimap, frame: HTMLDivElement) {
+	public add(minimap: Minimap, frame?: HTMLDivElement) {
 		if (frame && this.div) {
 			this.div.appendChild(frame);
-			frame.style.height = frame.style.width = '100%';
-			frame.style.display = this.vertical ? 'block' : 'inline-block';
-			frame.scrollIntoView();
+			frame.style.position = 'absolute';
+			const allotment = 100 / this.minimapsCount;
+			if (this.vertical) {
+				frame.style.top = String(minimap.ordinal * allotment) + '%';
+				frame.style.height = String(allotment * 0.9) + '%';
+				frame.style.right = frame.style.left = '0';
+			} else {
+				frame.style.left = String(minimap.ordinal * allotment) + '%';
+				frame.style.width = String(allotment * 0.9) + '%';
+				frame.style.top = frame.style.bottom = '0';
+			}
 		}
-		this.minimaps.push(minimap);
+		if (this.minimaps[minimap.ordinal]) this.minimaps[minimap.ordinal].destructor();
+		this.minimaps[minimap.ordinal] = minimap;
 	}
 
 	// =============================================================================================================================
 	public createMinimap(p: Readonly<FmmMinimapCreateParam>): FmmMinimap {
-		const err = 'FmmMinimap <' + p.title + '> not created: invalid ';
+		const err = 'FmmMinimap <' + p.title + '> not created: invalid '
 		if (!p.form) throw new Error(err + 'form');
+		if (p.ordinal && p.ordinal >= this.minimapsCount) throw new Error(err + 'ordinal');
 		return new Minimap(p, this);
 	}
 
@@ -954,8 +958,7 @@ class Panel implements FmmPanel {
 
 	// =============================================================================================================================
 	public remove(minimap: Minimap) {
-		const index = this.minimaps.findIndex(m => m === minimap);
-		if (index >= 0) this.minimaps.splice(index, 1);
+		delete this.minimaps[minimap.ordinal];
 	}
 
 	// =============================================================================================================================
@@ -990,7 +993,7 @@ interface ParamUpdates extends ParamSnapshotConstructor {
 //						P O P U P
 // =================================================================================================================================
 class Popup {
-	private readonly div!: HTMLDivElement;
+	private readonly div: HTMLDivElement;
 
 	// =============================================================================================================================
 	public constructor(ef: FmmElementFactory, className: string, content: HTMLElement, parent: HTMLDivElement) {
@@ -1097,7 +1100,7 @@ class Popup {
 // =================================================================================================================================
 class PushPin {
 	private readonly SIZE = 24;
-	private readonly svg!: SVGSVGElement;
+	private readonly svg: SVGSVGElement;
 	private parentCursor = 'none';
 	private pinned = false;
 
@@ -1208,9 +1211,9 @@ class Snapshot {
 		status: 'Optional',
 		value: ''
 	};
-	public readonly data!: FmmSnapshot;
-	private readonly div!: HTMLDivElement;
-	private readonly upcall!: SnapshotUpcall;
+	public readonly data: FmmSnapshot;
+	private readonly div: HTMLDivElement;
+	private readonly upcall: SnapshotUpcall;
 	private rect?: DOMRectReadOnly;
 
 	// =============================================================================================================================
@@ -1297,7 +1300,7 @@ interface SnapshotUpcall {
 //						S N A P S H O T S P A N E L
 // =================================================================================================================================
 class SnapshotsPanel {
-	private readonly div!: HTMLDivElement;
+	private readonly div: HTMLDivElement;
 	private readonly list: Snapshot[] = [];
 
 	// =============================================================================================================================
@@ -1326,6 +1329,7 @@ class SnapshotsPanel {
 		const wscale = width / pageRect.width;
 		const pstyle = this.div.parentElement.style;
 		const style = this.div.style;
+		if (!frame.popup) useWidthToScale = pageRect.height * wscale <= height;
 		if (useWidthToScale) {
 			const heightpx = String(Math.round(pageRect.height * wscale)) + 'px';
 			pstyle.width = style.width = String(width) + 'px';

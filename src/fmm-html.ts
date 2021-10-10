@@ -24,7 +24,7 @@ export interface FmmFormElementHTML extends FmmFormElement, HTMLElement { }
 export class FmmFormHTML implements FmmForm {
 	private static readonly CLIP = ['auto', 'hidden', 'scroll'];
 	private readonly resizeObserver = new ResizeObserver(this.onFormResize.bind(this));
-	private readonly page!: HTMLElement;
+	private readonly page: HTMLElement;
 	private layoutHandler?: FmmFormLayoutHandler;
 
 	// =============================================================================================================================
@@ -218,7 +218,6 @@ export class FmmStoreHTML extends FmmStoreBase implements FmmStore {
 		}
 		if (tag === 'SELECT') return new StoreItemSelect(e as HTMLSelectElement, this.listener);
 		if (tag === 'TEXTAREA') return new StoreItemTextArea(e as HTMLTextAreaElement, this.listener);
-		return undefined;
 	}
 
 	// =============================================================================================================================

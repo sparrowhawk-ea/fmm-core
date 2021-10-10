@@ -24,7 +24,7 @@ export abstract class FmmStoreBase {
 //						F M M S T O R E I M P L
 // =================================================================================================================================
 export class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> extends FmmStoreBase implements FmmStore {
-	private errors!: TE;
+	private errors: TE;
 
 	// =============================================================================================================================
 	public constructor(private values: TV, errors?: TE) {
@@ -37,7 +37,6 @@ export class FmmStoreImpl<TV extends FmmStoreValues, TE extends FmmStoreErrors> 
 	public createStoreItem(form: FmmForm, e: FmmFormElement): FmmStoreItem | undefined {
 		for (const key of form.getStoreKeys(e))
 			if (key && key in this.values) return new StoreItem(e, key);
-		return undefined;
 	}
 
 	// =============================================================================================================================

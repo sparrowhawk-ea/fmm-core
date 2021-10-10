@@ -85,6 +85,7 @@ export interface FmmMinimapCreateParam {
 	form: FmmForm;
 	framework?: FmmFramework;
 	onUpdate?: FmmOnUpdate;
+	ordinal?: number;
 	store?: FmmStore;
 	title: string;
 	usePanelDetail?: boolean;
