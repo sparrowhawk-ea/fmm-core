@@ -105,16 +105,16 @@ panel.destructor();
 Static Method | Parameter/Returns | Description
 --- | --- | ---
 createMinimap | ( | Create a minimap.
-| p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
-| ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
-| ): [FmmMinimap](#fmmminimap)
+&nbsp;| p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
+&nbsp;| ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
+&nbsp;| ): [FmmMinimap](#fmmminimap)
 createPanel | ( | Create a panel to hold multiple minimaps.
-| parent: HTMLElement | Parent for the panel.
-| <a name='pcp-minimapscount'></a>minimapsCount: number | Number of child minimaps expected.
-| <a name='pcp-detailparent'></a>detailParent?: HTMLElement | Parent for the detail area.  If undefined, details will be shown in a popup.
-| <a name='pcp-vertical'></a>vertical?: boolean | Stack minimaps vertically in the panel.
-| ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
-| ): [FmmPanel](#fmmpanel)
+&nbsp;| parent: HTMLElement | Parent for the panel.
+&nbsp;| <a name='pcp-minimapscount'></a>minimapsCount: number | Number of child minimaps expected.
+&nbsp;| <a name='pcp-detailparent'></a>detailParent?: HTMLElement | Parent for the detail area.  If undefined, details will be shown in a popup.
+&nbsp;| <a name='pcp-vertical'></a>vertical?: boolean | Stack minimaps vertically in the panel.
+&nbsp;| ef?: [FmmElementFactory](#fmmelementfactory) | Advanced usage.  Can be undefined for most cases.
+&nbsp;| ): [FmmPanel](#fmmpanel)
 
 ## FmmElementFactory
 
@@ -134,8 +134,8 @@ form | HTMLFormElement | The form.
 Method | Parameter/Returns | Description
 --- | --- | ---
 compose | ( | Sync the minimap with changes in form composition if elements were added or removed.
-| <a name='mm-compose-customelementids'></a>customElementIds?: string[] | List of non-standard form elements by ID or NAME attribute.
-| ): void
+&nbsp;| <a name='mm-compose-customelementids'></a>customElementIds?: string[] | List of non-standard form elements by ID or NAME attribute.
+&nbsp;| ): void
 <a name='mm-destructor'></a>destructor | (): void | Destroy this minimap and remove it from the DOM.
 detach | (): void | Detach this minimap.  Detached minimaps will be shown grayed out.
 <a name='mm-takesnapshot'></a>takeSnapshot | (): boolean | Sync the minimap with the values and statuses of form elements.  Returns false if minimap was detached or destroyed.
@@ -166,8 +166,8 @@ Property | Type | Default | Description
 Method | Parameter/Returns | Description
 --- | --- | ---
 createMinimap | ( | Create a mininap in this panel.
-| p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
-| ): [FmmMinimap](#fmmminimap)
+&nbsp;| p: [FmmMinimapCreateParam](#fmmminimapcreateparam)
+&nbsp;| ): [FmmMinimap](#fmmminimap)
 <a name='pm-destroydetached'></a>destroyDetached | (): void | Destroy all detached minimaps in this panel.
 destructor | (): void | Destroy this panel and remove it from the DOM.
 
